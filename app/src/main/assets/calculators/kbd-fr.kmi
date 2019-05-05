@@ -1,0 +1,730 @@
+# Super-Keyboard FR: Emulation clavier pour PC et HP-71B
+# adaptation J-F Garnier, 2014
+
+Scancode 8			# BS -> [f]BACK
+	SetFlag 0
+	Map 8 402
+	Map 8 405
+End
+
+Scancode 9			# Tab -> RUN
+	SetFlag 0		# Shift-Tab -> [f]SST
+	IfFlag 16		# Ctrl-Tab -> [g]CTRL
+		Map 9 402
+	Else
+		IfFlag 17
+			Map 9 403
+		End
+	End
+	Map 9 404
+End
+
+Scancode 13			# Enter -> END LINE
+	SetFlag 0		# Shift-Enter -> [f]RES
+	IfFlag 16		# Ctrl-Enter -> [g]CMDS
+		Map 13 402
+	Else
+		IfFlag 17
+			Map 13 403
+		End
+	End
+	Map 13 310
+End
+
+Scancode 112			# F1 -> [f]
+	SetFlag 0
+	Map 112 402
+End
+Scancode 16			# Shift(Press/Release) -> [f]
+	IfPressed 16
+		SetFlag 16
+		ResetFlag 0
+		IfFlag 17
+                        ResetFlag 17
+                        ResetFlag 16
+			SetFlag 0
+		End
+		IfFlag 18
+                        ResetFlag 18
+                        ResetFlag 16
+			SetFlag 0
+		End
+	Else
+		ResetFlag 16
+		IfFlag 0
+		Else
+			Press 402
+		End
+		Release 402
+		Release 403
+	End
+End
+
+Scancode 113			# F2 -> [g]
+	SetFlag 0
+	Map 113 403
+End
+Scancode 17			# Ctrl(Press/Release) -> [g]
+	IfPressed 17
+		SetFlag 17
+		ResetFlag 0
+		IfFlag 16
+                        ResetFlag 16
+                        ResetFlag 17
+			SetFlag 0
+		End
+		IfFlag 18
+                        ResetFlag 18
+                        ResetFlag 17
+			SetFlag 0
+		End
+	Else
+		ResetFlag 17
+		IfFlag 0
+		Else
+			Press 403
+		End
+		Release 403
+		Release 402
+	End
+End
+
+Scancode 18                     # AltGr
+	IfPressed 18
+		SetFlag 18
+		SetFlag 0
+                ResetFlag 16
+                ResetFlag 17
+	Else
+		ResetFlag 18
+		Release 403
+		Release 402
+	End
+End
+
+Scancode 20			# CapsLock -> [f]LC (LowerCase)
+	SetFlag 0
+	Map 20 402
+	Map 20 408
+End
+
+Scancode 27			# Esc -> ON/ATTN
+	SetFlag 0		# Shift-Esc -> [f]OFF
+	IfFlag 16
+		Map 27 402
+	End
+	Map 27 401
+End
+
+Scancode 32			# Space -> SPC
+	SetFlag 0		# Shift-Space -> [f]I/R (Ins/Repl)
+	IfFlag 16		# Ctrl-Space -> [g]ERRM
+		Map 32 402
+	Else
+		IfFlag 17
+			Map 32 403
+		End
+	End
+	Map 32 407
+End
+
+Scancode 33			# PgUp -> [g]Up
+	SetFlag 0
+	Map 33 403
+	Map 33 408
+End
+
+Scancode 34			# PgDn -> [g]Down
+	SetFlag 0
+	Map 34 403
+	Map 34 409
+End
+
+Scancode 35			# End -> [g]Right
+	SetFlag 0
+	Map 35 403
+	Map 35 406
+End
+
+Scancode 36			# Home -> [g]Left
+	SetFlag 0
+	Map 36 403
+	Map 36 405
+End
+
+Scancode 37			# Left
+	SetFlag 0
+	IfFlag 16
+		Map 37 402
+	Else
+                IfFlag 17
+                        Map 37 403
+                End
+        End
+	Map 37 405
+End
+
+Scancode 38			# Up
+	SetFlag 0
+	IfFlag 16
+		Map 38 402
+	Else
+                IfFlag 17
+                        Map 38 403
+                End
+	End
+	Map 38 408
+End
+
+Scancode 39			# Right
+	SetFlag 0
+	IfFlag 16
+		Map 39 402
+	Else
+                IfFlag 17
+                        Map 39 403
+                End
+	End
+	Map 39 406
+End
+
+Scancode 40			# Down
+	SetFlag 0
+	IfFlag 16
+		Map 40 402
+	Else
+                IfFlag 17
+                        Map 40 403
+                End
+	End
+	Map 40 409
+End
+
+Scancode 45			# Ins -> [f]I/R (Ins/Repl)
+	SetFlag 0
+	Map 45 402
+	Map 45 407
+End
+
+Scancode 46			# Del -> [f]-CHAR
+	SetFlag 0		# Shift-Del -> [f]-LINE
+	Map 46 402              # Ctrl-Del -> [f]-LINE
+	IfFlag 16
+		Map 46 409
+	Else
+                IfFlag 17
+                        Map 46 409
+                Else
+                        Map 46 406
+                End
+	End
+End
+
+Scancode 48			# 0 @
+	SetFlag 0
+	IfFlag 16
+		Map 48 411
+	Else
+		IfFlag 18
+			Map 48 403
+			Map 48 314
+		End
+	End
+End
+
+Scancode 49			# 1 &
+	SetFlag 0
+	IfFlag 16
+		Map 49 311
+	Else
+		Map 49 403
+		Map 49 213
+	End
+End
+
+Scancode 50			# 2 
+	SetFlag 0
+	IfFlag 16
+		Map 50 312
+	Else
+	End
+End
+
+Scancode 51			# 3 " #
+	SetFlag 0
+	IfFlag 16
+		Map 51 313
+	Else
+		IfFlag 18
+			Map 51 403
+			Map 51 313
+		Else
+			Map 51 403
+			Map 51 312
+		End
+	End
+End
+
+Scancode 52			# 4 ' {
+	SetFlag 0
+	IfFlag 16
+		Map 52 211
+	Else
+		IfFlag 18
+			Map 52 403
+			Map 52 112
+		Else
+			Map 52 403
+			Map 52 111
+		End
+	End
+End
+
+Scancode 53			# 5 ( [
+	SetFlag 0
+	IfFlag 16
+		Map 53 212
+	Else
+		IfFlag 18
+			Map 53 403
+			Map 53 308
+		Else
+			Map 53 308
+		End
+	End
+End
+
+Scancode 54			# 6 - 
+	SetFlag 0
+	IfFlag 16
+		Map 54 213
+	Else
+		Map 54 314
+	End
+End
+
+Scancode 55			# 7 
+	SetFlag 0
+	IfFlag 16
+		Map 55 111
+	End
+End
+
+Scancode 56			# 8  
+	SetFlag 0
+	IfFlag 16
+		Map 56 112
+	End
+End
+
+Scancode 57			# 9 ^
+	SetFlag 0
+	IfFlag 16
+		Map 57 113
+	Else
+		IfFlag 18
+			Map 57 403
+			Map 57 114
+		End
+	End
+End
+
+Scancode 65			# A a
+	SetFlag 0
+	IfFlag 16
+		Map 65 403
+	End
+	Map 65 201
+End
+
+Scancode 66			# B b
+	SetFlag 0
+	IfFlag 16
+		Map 66 403
+	End
+	Map 66 305
+End
+
+Scancode 67			# C c
+	SetFlag 0
+	IfFlag 16
+		Map 67 403
+	End
+	Map 67 303
+End
+
+Scancode 68			# D d
+	SetFlag 0
+	IfFlag 16
+		Map 68 403
+	End
+	Map 68 203
+End
+
+Scancode 69			# E e
+	SetFlag 0
+	IfFlag 16
+		Map 69 403
+	End
+	Map 69 103
+End
+
+Scancode 70			# F f
+	SetFlag 0
+	IfFlag 16
+		Map 70 403
+	End
+	Map 70 204
+End
+
+Scancode 71			# G g
+	SetFlag 0
+	IfFlag 16
+		Map 71 403
+	End
+	Map 71 205
+End
+
+Scancode 72			# H h
+	SetFlag 0
+	IfFlag 16
+		Map 72 403
+	End
+	Map 72 206
+End
+
+Scancode 73			# I i
+	SetFlag 0
+	IfFlag 16
+		Map 73 403
+	End
+	Map 73 108
+End
+
+Scancode 74			# J j
+	SetFlag 0
+	IfFlag 16
+		Map 74 403
+	End
+	Map 74 207
+End
+
+Scancode 75			# K k
+	SetFlag 0
+	IfFlag 16
+		Map 75 403
+	End
+	Map 75 208
+End
+
+Scancode 76			# L l
+	SetFlag 0
+	IfFlag 16
+		Map 76 403
+	End
+	Map 76 209
+End
+
+Scancode 77			# M m
+	SetFlag 0
+	IfFlag 16
+		Map 77 403
+	End
+	Map 77 307
+End
+
+Scancode 78			# N n
+	SetFlag 0
+	IfFlag 16
+		Map 78 403
+	End
+	Map 78 306
+End
+
+Scancode 79			# O o
+	SetFlag 0
+	IfFlag 16
+		Map 79 403
+	End
+	Map 79 109
+End
+
+Scancode 80			# P p
+	SetFlag 0
+	IfFlag 16
+		Map 80 403
+	End
+	Map 80 110
+End
+
+Scancode 81			# Q q
+	SetFlag 0
+	IfFlag 16
+		Map 81 403
+	End
+	Map 81 101
+End
+
+Scancode 82			# R r
+	SetFlag 0
+	IfFlag 16
+		Map 82 403
+	End
+	Map 82 104
+End
+
+Scancode 83			# S s
+	SetFlag 0
+	IfFlag 16
+		Map 83 403
+	End
+	Map 83 202
+End
+
+Scancode 84			# T t
+	SetFlag 0
+	IfFlag 16
+		Map 84 403
+	End
+	Map 84 105
+End
+
+Scancode 85			# U u
+	SetFlag 0
+	IfFlag 16
+		Map 85 403
+	End
+	Map 85 107
+End
+
+Scancode 86			# V v
+	SetFlag 0
+	IfFlag 16
+		Map 86 403
+	End
+	Map 86 304
+End
+
+Scancode 87			# W w
+	SetFlag 0
+	IfFlag 16
+		Map 87 403
+	End
+	Map 87 102
+End
+
+Scancode 88			# X x
+	SetFlag 0
+	IfFlag 16
+		Map 88 403
+	End
+	Map 88 302
+End
+
+Scancode 89			# Y y
+	SetFlag 0
+	IfFlag 16
+		Map 89 403
+	End
+	Map 89 106
+End
+
+Scancode 90			# Z z
+	SetFlag 0
+	IfFlag 16
+		Map 90 403
+	End
+	Map 90 301
+End
+
+Scancode 96			# Num 0
+	SetFlag 0
+	Map 96 411
+End
+
+Scancode 97			# Num 1
+	SetFlag 0
+	Map 97 311
+End
+
+Scancode 98			# Num 2
+	SetFlag 0
+	Map 98 312
+End
+
+Scancode 99			# Num 3
+	SetFlag 0
+	Map 99 313
+End
+
+Scancode 100			# Num 4
+	SetFlag 0
+	Map 100 211
+End
+
+Scancode 101			# Num 5
+	SetFlag 0
+	Map 101 212
+End
+
+Scancode 102			# Num 6
+	SetFlag 0
+	Map 102 213
+End
+
+Scancode 103			# Num 7
+	SetFlag 0
+	Map 103 111
+End
+
+Scancode 104			# Num 8
+	SetFlag 0
+	Map 104 112
+End
+
+Scancode 105			# Num 9
+	SetFlag 0
+	Map 105 113
+End
+
+Scancode 106			# Num *
+	SetFlag 0
+	Map 106 214
+End
+
+Scancode 107			# Num +
+	SetFlag 0
+	Map 107 414
+End
+
+Scancode 109			# Num -
+	SetFlag 0
+	Map 109 314
+End
+
+Scancode 110			# Num., -> .
+	SetFlag 0
+	Map 110 412
+End
+
+Scancode 111			# Num /
+	SetFlag 0
+	Map 111 114
+End
+
+Scancode 186			# $
+	SetFlag 0
+	IfFlag 16
+	Else
+		Map 186 403
+		Map 186 211
+	End
+End
+
+Scancode 187			# = + }
+	SetFlag 0
+	IfFlag 16
+		Map 187 414
+	Else
+		IfFlag 18
+			Map 187 403
+			Map 187 113
+		Else
+			Map 187 210
+		End
+	End
+End
+
+Scancode 188			# , ?
+	SetFlag 0
+	IfFlag 16
+		Map 188 403
+		Map 188 414
+	Else
+		Release 412
+		Map 188 413
+	End
+End
+
+# Scancode 189			#
+
+Scancode 190			# ; .
+	SetFlag 0
+	IfFlag 16
+		Map 190 412
+	Else
+		Map 190 403
+		Map 190 210
+	End
+End
+
+Scancode 191			# / :
+	SetFlag 0
+	IfFlag 16
+		Map 191 114
+	Else
+		Map 191 403
+		Map 191 214
+	End
+End
+
+Scancode 192			# %
+	SetFlag 0
+	IfFlag 16
+		Map 192 403
+		Map 192 212
+	Else
+	End
+End
+
+Scancode 219			# ) ]
+	SetFlag 0
+	IfFlag 16
+	Else
+		IfFlag 18
+			Map 219 403
+			Map 219 309
+		Else
+			Map 219 309
+		End
+	End
+End
+
+Scancode 220			# *
+	SetFlag 0
+	IfFlag 16
+	Else
+		Map 220 214
+	End
+End
+
+Scancode 221			# ^
+	SetFlag 0
+	IfFlag 16
+	Else
+		Map 221 403
+		Map 221 114
+	End
+End
+
+# Scancode 222			# ²
+
+Scancode 223			# !
+	SetFlag 0
+	IfFlag 16
+	Else
+		Map 223 403
+		Map 223 311
+	End
+End
+
+Scancode 226			# < >
+	SetFlag 0
+	IfFlag 16
+		Map 226 403
+		Map 226 413
+	Else
+		Map 226 403
+		Map 226 412
+	End
+End

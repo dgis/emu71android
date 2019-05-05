@@ -1,0 +1,17 @@
+# switcher for nationalized keyboard setting
+
+Locale 7			# German(Neutral)
+	Include "kbd-gr.kmi"	# German(German)
+End
+
+Locale 2057			# English(UK)
+	Include "kbd-uk.kmi"	# English(UK)
+End
+
+Locale 12			# French(Neutral)
+	Include "kbd-fr.kmi"	# French(France)
+End
+
+Locale 0			# default, must be the last defined locale
+	Include "kbd-us.kmi"	# English(US)
+End

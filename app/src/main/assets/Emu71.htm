@@ -1,0 +1,892 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+     "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+<title>Emu71 Manual</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<meta http-equiv="Content-Language" content="en-us">
+<meta name="author" content="Christoph Giesselink">
+<meta name="description" content="Emulator Manual Emu71">
+<style type="text/css">
+<!--
+body { background-color:white;
+       font-family:'Times New Roman',Times,Arial,serif;
+       /* font-size:76%; */
+     }
+p  { font-size:1.0em; }
+h1 { color:red; font-size:1.5em;  }
+h2 { color:red; font-size:1.5em;  }
+h3 { color:red; font-size:1.1em; }
+#headline { margin-left: 20%; text-align:center; font-size:1.5em; }
+#navi { float: left; width: 15%; }
+#main { margin-left: 20%; }
+.nav1 { font-weight:bold;   font-size:0.8em; }
+.nav2 { font-weight:normal; font-size:0.8em; }
+-->
+</style>
+</head>
+<body>
+<div id="headline">
+  <p>Emu71 - A freeware HP-71B Emulator<br>
+    for Windows 9x, ME, NT, 2000, XP, Vista, 7, 8 and 10</p>
+</div>
+<div id="navi">
+  <p><a class="nav1" href="#s1">1. General</a></p>
+  <p><a class="nav1" href="#s2">2. Acknowledgements</a></p>
+  <p><a class="nav1" href="#s3">3. ROM Images</a></p>
+  <p><a class="nav1" href="#s4">4. Installation</a></p>
+  <p><a class="nav1" href="#s5">5. How to Start</a></p>
+  <p><a class="nav1" href="#s6">6. Command Line</a></p>
+  <p><a class="nav1" href="#s7">7. Virtual Keyboard</a></p>
+  <p><a class="nav1" href="#s8">8. File Menu</a><br>
+    <span class="nav2">
+    <a href="#ss8.1">8.1 New...</a><br>
+    <a href="#ss8.2">8.2 Open...</a><br>
+    <a href="#ss8.3">8.3 Save</a><br>
+    <a href="#ss8.4">8.4 Save As...</a><br>
+    <a href="#ss8.5">8.5 Close</a><br>
+    <a href="#ss8.6">8.6 Settings</a><br>
+    <a href="#ss8.7">8.7 Exit</a>
+    </span></p>
+  <p><a class="nav1" href="#s9">9. Edit Menu</a><br>
+    <span class="nav2">
+    <a href="#ss9.1">9.1 Port Configuration...</a><br>
+    <a href="#ss9.1.1">9.1.1 Overview</a><br>
+    <a href="#ss9.1.2">9.1.2 Module examples</a><br>
+    <a href="#ss9.2">9.2 Copy Screen</a><br>
+    <a href="#ss9.3">9.3 Copy Stack</a><br>
+    <a href="#ss9.4">9.4 Paste Stack</a><br>
+    <a href="#ss9.5">9.5 Reset Calculator</a><br>
+    <a href="#ss9.6">9.6 Backup</a><br>
+    <a href="#ss9.6.1">9.6.1 Backup Save</a><br>
+    <a href="#ss9.6.2">9.6.2 Backup Restore</a><br>
+    <a href="#ss9.6.3">9.6.3 Backup Delete</a>
+    </span></p>
+  <p><a class="nav1" href="#s10">10. View Menu</a><br>
+    <a class="nav2" href="#ss10.1">10.1 Change KML Script...</a></p>
+  <p><a class="nav1" href="#s11">11. Tools Menu</a><br>
+    <span class="nav2">
+    <a href="#ss11.1">11.1 Disassembler...</a><br>
+    <a href="#ss11.2">11.2 Debugger...</a><br>
+    <a href="#ss11.3">11.3 Macro</a><br>
+    <a href="#ss11.3.1">11.3.1 Macro Record...</a><br>
+    <a href="#ss11.3.2">11.3.2 Macro Play...</a><br>
+    <a href="#ss11.3.3">11.3.3 Macro Stop</a><br>
+    <a href="#ss11.3.4">11.3.4 Macro Settings...</a>
+    </span></p>
+  <p><a class="nav1" href="#s12">12. Help Menu</a><br>
+    <span class="nav2">
+    <a href="#ss12.1">12.1 Help Topics</a><br>
+    <a href="#ss12.2">12.2 About Emu71...</a>
+    </span></p>
+  <p><a class="nav1" href="#s13">13. Virtual HP-IL</a></p>
+  <p><a class="nav1" href="#s14">14. License</a></p>
+</div>
+<div id="main">
+  <h1><a name=s1>1. General</a></h1>
+    <p>Emu71 is based on the sources of Emu48 and is an emulator for the
+    Hewlett Packard Titan calculator HP-71B hardware. This calculator
+    emulation is based on the 1LK7 Saturn CPU, the 1LF3 display driver, the
+    1LG7 ROM and 1LG8 RAM chips. The calculator emulation can be expanded by
+    the emulation of additional RAM and ROM modules and by a simulation of
+    the HP-IL modules inside the ports 0 to 5.</p>
+  <h1><a name=s2>2. Acknowledgements</a></h1>
+    <p>A big thank to Jean-Fran&ccedil;ois Garnier for his technical
+    assistance and his code simulating the HP-IL I/O processor. Lode
+    Vandevenne spend the PNG image decoder. Also thanks to Sebastien
+    Carlier for his Emu48 v1.0, without him this emulator would never have
+    been created. And finally I want to thank all the people making the IDS
+    documents available.</p>
+  <h1><a name=s3>3. ROM Images</a></h1>
+    <p>You need ROM images. The ROM images are copyrighted by Hewlett Packard
+    and I have no license to distribute them. Please don't ask me, I will not
+    send you mine.</p>
+    <p>This is a ROM dump program from Jean-Fran&ccedil;ois Garnier reading
+    the HP-71B ROM content and sending the data to a HP-IL printer device.
+    In this case I prefer using his
+    <a href="http://www.jeffcalc.hp41.eu/hpil/index.html">PIL-Box</a> with
+    ILPer for capturing the data in the ILPer Printer area.</p>
+<pre><code>10 DIM A$[64]
+20 A=HTD("0") ! start address of ROM to transfer
+30 FOR I=0 TO 64*32-1 ! length of ROM (here for 64Kb)
+40 A$=PEEK$(DTH$(A+I*64),64)
+50 OUTPUT :1 ;A$
+60 NEXT I
+</code></pre>
+    <p>The output format is a memory dump file like used by Derek S. Nickel's
+    Voyager program. With the program <i>Dmp2rom.exe</i> from the
+    <a href="http://hp.giesselink.com/Pcuti/FILETOOL.ZIP">file tool
+    package</a> the memory dump file can be converted to the necessary ROM
+    file format.</p>
+    <p>If you made the ROM dump, you may also modify the program above to
+    read the HP-IL ROM module content.</p>
+<pre><code>10 DIM A$[64]
+20 A=<span style="color:red">IP(HTD(ADDR$("HPILROM"))/256)*256</span> ! start address of <span style="color:red">HPIL</span> ROM to transfer
+30 FOR I=0 TO <span style="color:red">16</span>*32-1 ! length of ROM (here for <span style="color:red">16</span>Kb)
+40 A$=PEEK$(DTH$(A+I*64),64)
+50 OUTPUT :1 ;A$
+60 NEXT I
+</code></pre>
+    <p>ROM images are valid in a packed (even address lower nibble, odd address
+    higher nibble) or unpacked (one nibble per byte with even address first)
+    form. Files in the packed form have the same format like the files used
+    in Emu71 for DOS from Jean-Fran&ccedil;ois Garnier. They can be validated
+    with the <i>TITANCHK.EXE</i> command line utility. To do that, start a
+    Command Prompt while running Windows, and type:</p>
+    <blockquote>Titanchk &lt;image-file&gt;</blockquote>
+    <p>where &lt;image-file&gt; is the ROM image you want to test. As result you
+    will get a report of the ROM checksums.</p>
+  <h1><a name=s4>4. Installation</a></h1>
+    <p>To install Emu71, just unzip the emulator and the required emulator skins
+    into an empty directory. Finally copy your ROM images into this directory
+    and adjust the ROM image name to the name used in the corresponding KML
+    script. When you first run Emu71, it will detect the directory in which you
+    installed it, and will write the configuration to the registry at
+    <i>HKCU\Software\Emu71</i>.</p>
+  <h1><a name=s5>5. How to Start</a></h1>
+    <p>When Emu71 is installed and you have put the valid ROM image into your
+    Emu71 installation directory, you can start Emu71. You'll see a
+    &quot;Choose Your KML Script&quot; box.</p>
+    <p>KML scripts in fact define the visual aspect of Emu71, the behavior of
+    the buttons, of the keyboard, ... It's a GREAT way to customize your copy
+    of Emu71.</p>
+    <p>Check that the path in the &quot;Emu71 Directory&quot; text area is
+    correct. Modify it if the directory in which you installed Emu71 is not the
+    directory displayed. Click the refresh button (&quot;V&quot;) after
+    modifying it to update the list box or use the (&quot;...&quot;) button to
+    start the directory browser.</p>
+    <p>Choose a KML script in the list box for your calculator ROM you put into
+    Emu71's directory.</p>
+    <p>Available scripts from the author at the moment are:</p>
+    <ul>
+      <li>Christoph's Real HP71B for 800x600</li>
+      <li>Christoph's Real HP71B for 1024x768</li>
+    </ul>
+    <p>These scripts use &quot;HP71B.ROM&quot; as Name for the ROM image
+    file.</p>
+    <p>If you are interested in writing new scripts, get the KML 2.0
+    documentation from <a href="http://hp.giesselink.com/emu48.htm">the
+    authors Emu48 page</a>.</p>
+    <p>Once you have selected a script, press OK to start the emulator. In most
+    cases, when Emu71 crash after pressing the OK button, you are using an
+    invalid ROM image. While it's running, you can use the View/Change KML
+    Script... command to change the visual aspect of Emu71.</p>
+  <h1><a name=s6>6. Command Line</a></h1>
+    <p>The command line syntax is &quot;<i>Emu71 [file]</i>&quot;. The
+     parameter sets the filename for the emulation data independent from the
+     &quot;LastDocument&quot; setting. The argument is optional.</p>
+  <h1><a name=s7>7. Virtual Keyboard</a></h1>
+    <p>There are two ways to use the virtual keyboard on the emulated
+    calculator:</p>
+    <ol>
+      <li><a href="#mouse">by Mouse</a></li>
+      <li><a href="#keyboard">by PC keyboard</a></li>
+    </ol>
+    <p><a name=mouse></a>
+    The easiest way to use the emulated calculator is using the mouse. The KML
+    script define buttons with an area where mouse input is active. The mouse
+    cursor change from an arrow to a hand cursor in these areas. The state of
+    the virtual key follow the state of your left mouse button. When the mouse
+    cursor leaves the virtual key area the virtual button automatically
+    release. In some cases you need to press more than one key on the
+    emulator. For these cases press the virtual key with the right mouse
+    button. When you release the mouse button or leave the area of the virtual
+    key, the key is still hold. To release all hold virtual buttons, just use
+    the left mouse botton again. A single release of a hold virtual key isn't
+    possible.</p>
+    <p><a name=keyboard></a>
+    Another convenient way is using the PC keyboard. The KML script language
+    support a large variety of commands to implement this feature. So keyboard
+    usage depends on your used KML script and not on the emulator. Because of
+    this it's impossible to say what's happen when you press a key on the PC
+    keyboard. For further details read the KML 2.0 documentation mentioned
+    before please.</p>
+  <h1><a name=s8>8. File Menu</a></h1>
+  <h2><a name=ss8.1>8.1 New...</a></h2>
+    <p>Creates a new emulation session. You're asked for a new KML script
+    where you can select the calculator type and skin to emulate.</p>
+  <h2><a name=ss8.2>8.2 Open...</a></h2>
+    <p>Opens an existing emulation session. The emulation continues at the
+    same position where the loaded session was aborted.</p>
+  <h2><a name=ss8.3>8.3 Save</a></h2>
+    <p>Saves the current running session with the actual name.</p>
+  <h2><a name=ss8.4>8.4 Save As...</a></h2>
+    <p>Saves the current running session with a new name.  You're also get in
+    this dialog when you Exit a new session without a state file name.</p>
+  <h2><a name=ss8.5>8.5 Close</a></h2>
+    <p>Closes the current session without closing the emulator.</p>
+  <h2><a name=ss8.6>8.6 Settings</a></h2>
+    <p>This calls the Settings dialog. This dialog has three sections:
+    General, Disassembler and Sound.</p>
+  <h3>8.6.1 General section</h3>
+    <ul>
+      <li><i>Authentic Calculator Speed</i>
+      <p>When this option is checked, the emulation speed will be similar to
+      the real calculator.</p></li>
+      <li><i>Show Title</i>
+      <p>When this option is checked, the window title bar is visible.</p></li>
+      <li><i>Show Menu</i>
+      <p>When this option is checked, the menu bar is enabled. If unchecked,
+      the menu is accessible as context menu in the client area outside the
+      calculator button definitions.</p></li>
+      <li><i>Always On Top</i>
+      <p>When this option is checked, the emulator windows will always be the
+      topmost one.</p></li>
+      <li><i>Activation Follows Mouse</i>
+      <p>This option enables a X-Mouse style windows activation. When the
+      mouse is moved over the emulator window, the emulator is getting the
+      focus and popping up into foreground.</p></li>
+      <li><i>Single Instance</i>
+      <p>When this option is checked, the program is only allowed to run in
+      a single instance. If another running instance is detected, the detected
+      instance is set into foreground as active window and get a request to
+      change his state file to the given one by the current instance. Finally
+      the current instance is terminated.</p></li>
+      <li><i>Automatically Save Files</i>
+      <p>When this option is checked, the current state file will be saved
+      automatically when you change to another state file, but not when you
+      close the emulator program.</p></li>
+      <li><i>Automatically Save Files On Exit</i>
+      <p>When this option is checked, the current state file will be saved
+      automatically at the end when the emulator program is closed.</p></li>
+      <li><i>Always Show KML Compilation Result</i>
+      <p>When this option is checked, you see the results of the KML
+      (Keyboard Macro Language) interpreter at every emulator startup.</p></li>
+    </ul>
+  <h3>8.6.2 Disassembler section</h3>
+    <p>Choosing the assembler syntax:</p>
+    <ul>
+      <li><i>HP Mnemonics</i>
+      <p>This is the standard syntax used by HP.</p></li>
+      <li><i>Class Mnemonics</i>
+      <p>Class (Clarke assembler) was written by Lutz Vieweg in 1991, at a time
+      when HP had not published their own development tools. The syntax is very
+      similar to the AG and STAR mnemonics used at this time.</p></li>
+    </ul>
+  <h3>8.6.3 Sound section</h3>
+    <p>A new implementation of the sound engine made ROM patches for sound
+      output obsolete. The new sound engine emulates the behavior of the beeper
+      output ports and only work in connection with a sound card. Using the
+      internal PC speaker isn't possible any more. The old beeper method with a
+      ROM patch is still working but deprecated, it's strongly recommended to
+      remove all beep patches from your current KML scripts to enable the new
+      sound engine. The support of the old sound implementation by a ROM patch
+      maybe removed in later versions of the emulator and remaining beep
+      patches will corrupt the ROM with an illegal opcode then.
+    </p>
+    <p>
+      For the sound generation the calculator must know his own CPU strobe
+      frequency. On the real calculator the speed depends on various settings
+      like component tolerances, actual temperature, humidity and other
+      variables. The resulting speed is measured by the calculator firmware
+      at Power-On and Power-Off and stored in the =CSPEED variable. The
+      content of this calculator variable has direct influence on the
+      resulting frequency and duration. On the emulator the CPU strobe
+      frequency is set by the registry key
+      <i>HKCU\Software\Emu71\Emulator\SaturnCycles</i>. The content of this
+      variable multiplied with 16384 is the CPU strobe frequency in Hz used
+      by the emulator. Because older versions of the emulator were not able
+      to measure the CPU strobe frequency properly or the content of the
+      <i>SaturnCycles</i> has been changed since the last measurement, the
+      =CSPEED variable of this session file may contain a wrong frequency
+      value. You easily may discover this by measuring the real duration of
+      a 10s beep. Is the difference to 10s less than 1s everything is ok,
+      if not, you should perform a <u style="color:red">power cycle</u>
+      sequence of the calculator emulation in this session file. This recalls
+      the measuring routine and save the result in the speed variable.
+    </p>
+    <ul>
+      <li><i>Volume</i>
+      <p>The output volume can be selected with the Volume slider relative to
+      the Master Volume control. Be aware that the HP-71B has two steps of
+      loudness controlled by the system flag -25 please.
+      </p></li>
+      <li><i>Device</i>
+      <p>By default the sound device is set to &quot;Standard Audio&quot;, but
+      you can also manually choose the output device. The device name is
+      somehow cut since Window Vista, but the method of reading the device
+      name is used for backwards compatibility to older versions of the
+      Operating System. When you change the Standard Audio device in the
+      Operating System settings dialog, the internal device numbering may
+      change, and so the manually selected audio device.</p></li>
+    </ul>
+  <h2><a name=ss8.7>8.7 Exit</a></h2>
+    <p>Quit emulation. The default actions at finishing are defined in the
+    <a href=#ss8.6>Settings</a> dialog. If the current session is
+    &quot;Untitled&quot; you are asked for a session file name using the
+    <a href="#ss8.4">Save As...</a> dialog. If you quit the emulator without
+    a given filename, you're asked for choosing a KML script at next startup.
+    </p>
+  <h1><a name=s9>9. Edit Menu</a></h1>
+  <h2><a name=ss9.1>9.1 Port Configuration...</a></h2>
+    <p>With the port configuration dialog you can add a large variety of
+    different modules from various manufactures to your HP-71B emulation. At
+    the moment Emu71 can emulate RAM and ROM modules and simulate the
+    HP-IL Interface HP 82401A or the combination of the Dual HP-IL Adapter
+    HP 82402A with two HP-IL Interface HP 82401A modules.</p>
+    <p>To allow to emulate or simulate most of the modules published by
+    manufactures like HP (Hewlett Packard), HHP (Handheld Products) and CMT
+    (Corvallis Microtechnology Inc) the port configuration interface is very
+    flexible but not easy to understand.</p>
+    <p>Therefore we have to learn something about the memory design of the
+    HP-71B. In the HP-71B syntax, a PORT is a memory device of a specified
+    size. A module or better say a housing in a PORT slot can contain more
+    than one PORT. A good example for understanding is the internal 16KB
+    Port0 memory. The memory is divided into four chunks of 4KB accessible
+    with PORT(0), PORT(0.01), PORT(0.02) and PORT(0.03). A HHP 96KB module
+    for the Port5 slot is normally shown as three ports (5, 5.01, 5.02) of
+    32KB each.</p>
+    <p>Because of a limitation in the address decoder, each chip in such a
+    hybrid RAM or ROM PORT must have a size which is a result of a power of
+    2 operation (1, 2, 4, 8, 16, 32, ...) and can only be located on a base
+    address which is a multiple of it's own size. So a 48KB ROM module for
+    example, is technically a hybrid module consisting of three single 16KB
+    ROM chips.</p>
+    <p>In the HP-71B literature the name &quot;port&quot; is used in two
+    contexts. First, like used above, as memory device and second as name of
+    a physical port slot. Don't mix them up please. A memory port itself can
+    be RAM or ROM. Memory Mapped I/O parts aren't shown by the operating
+    system in this context.</p>
+    <p>ROM memory ports can be hard or soft configured. An example for a
+    hard configured ROM is the ROM of the operating system. ROM in modules
+    are normally soft configured like RAM modules. The two exceptions are
+    the FORTH module (HP 82441A) and the HP-41 translator module (HP 82490A)
+    which have a soft and a hard configured ROM inside.</p>
+    <p>What's the difference between soft and hard configured ROM's?</p>
+    <p>A hard configured ROM has a fixed base address programmed by the
+    manufacturer of the ROM, whereas, at a soft configured ROM, the base
+    address is chosen by the operating system at runtime. Soft configured
+    modules responds with an ID telling their type (RAM/ROM), the size and
+    if they are the last chip in a multiple chip queue.</p>
+    <ul>
+      <li>ROM
+      <p>HP designed the 1LG7 ROM chip for this purpose. The chip has a size
+      of 16KB. To implement a larger ROM you can combine multiple ROM chips
+      to a logically one. The last chip responds an ID being the last chip
+      in the queue.</p></li>
+      <li>RAM
+      <p>HP designed the 1LG8 RAM chip for this purpose. The chip has a size
+      of 1KB. This chip is used to build the internally 16KB of the Port 0
+      RAM or used in 4KB memory module 82420A. In literature you find
+      sometimes the synonym &quot;Hybrid chip&quot;. The chips in a hybrid
+      RAM are linked together by the Daisy chain DOUT / DIN pins and on the
+      last chip the ID pin is set to high that the chip responds an ID being
+      the last chip in the queue. Internally still each chip has to be
+      configured by the OS but the &quot;last chip marker&quot; tells the
+      OS that these chips should be treat as single chip for the user.</p>
+      <p>Companies, especially HHP and CMT, made 3rd party RAM modules with
+      32KB or larger around the 1LQ4 interface chip. With one 1LQ4 interface
+      chip normally 32KB (4 * 8KB or 1 * 32KB Static RAM) can be built and
+      these interface chips can be combined to single Ports showing as
+      5, 5.01, 5.02, ... or to hybrid chips larger than 32KB. Nevertheless,
+      all RAM modules belong to the Main RAM after plugging. They can
+      separately freed to Independent RAM.</p></li>
+      <li>HP-IL
+      <p>The HP-IL Interface simulation, or better say the simulated I/O
+      processor has some restrictions. It was mainly created to support a
+      few I/O processor commands as loop controller which are necessary to
+      access display, printer and mass storage devices. Later some of the
+      HP-71B device capabilities had been added. These are file transfers
+      from and to the loop, basic support for remote control and interrupt
+      capabilities for controller and device. All features are simulated
+      and don't behave in many situations exactly like the original module.
+      Further the implementation of all functions isn't complete, so
+      advanced or very low level features of the module (like manual mode
+      or parallel poll) are still not supported. Because of the limited
+      implementation a check of the HP-IL Interface module simulation with
+      the Diagnostic ROM fails on almost every I/O processor dependent test.
+      </p></li>
+    </ul>
+    <p>The port configuration and the data is saved in the Document file.
+    Because the content of most ROM images is copyrighted, only a link to
+    the image file is saved. I suggest to place ROM images of modules in the
+    same directory like the KML files. In this case only a relative path in
+    the document is saved. This let you use the document files on other PC's
+    with a different directory structure or drive letters without path change
+    to the ROM image files at document loading. The content of RAM data is
+    saved as image in the document file.</p>
+  <h3><a name=ss9.1.1>9.1.1 Overview</a></h3>
+  <h4>9.1.1.1 Group Box &quot;Port&quot;</h4>
+  <h5>9.1.1.1.1 Port selection</h5>
+    <p>Inside the group box you see on right hand the current port slot
+    selection. Default is &quot;Port1&quot; at startup. Available ports are
+    Port0, Port1, Port2, Port3, Port4 and Port5. Port0 drive the internal RAM
+    and the port slot at backside of the calculator housing. This slot is
+    normally reserved for the HP-IL (HP 82401A) or Dual HP-IL (HP 82402A)
+    module. The Port1 to Port4 slots are at the front and Port5 is the card
+    reader slot. From software aspect, there's no difference between these
+    port slots. From the hardware aspect, it was impossible in the 80ties to
+    put a 160KB RAM module, because of it's size, in a Port1 - Port4 slot.
+    But here we are on an emulator, and the virtual 160KB RAM module is
+    mechanically not really larger than the virtual standard 4KB module.</p>
+  <h5><a name=ss9.1.1.1.2>9.1.1.1.2 Port list box</a></h5>
+    <p>On left hand is a list box showing the ports in the current port
+    slot.</p>
+    <p>Explanation of such a port line:</p>
+    <ul>
+      <li>RAM, 4K (4)
+      <p>Type: RAM, Size: 4K Byte, No. of Chips: 4</p></li>
+      <li>RAM, 32K (1)
+      <p>Type: RAM, Size: 32K Byte, No. of Chips: 1</p></li>
+      <li>ROM, 16K (1), &quot;FORTHROM.BIN&quot;
+      <p>Type: ROM, Size: 16K Byte, No. of Chips: 1, Filename: FORTHROM.BIN
+      </p></li>
+      <li>HRD, E0000, 32K (2), &quot;HRDFORTH.BIN&quot;
+      <p>Type: HRD, Hard Wired Address: E0000, Size: 32K Byte, No. of Chips:
+      2, Filename: HRDFORTH.BIN</p></li>
+      <li>HPIL, 16K (1), &quot;HPILROM.BIN&quot;, &quot;localhost&quot;,
+      60001, 60000
+      <p>Type: HPIL, Size of ROM: 16K Byte, No. of Chips: 1, Filename:
+      HPILROM.BIN, IP-Address of next device in virtual IL: localhost,
+      IP-Port of next device in virtual IL: 60001, my IP-Port for virtual
+      IL data listening: 60000</p></li>
+    </ul>
+  <h5>9.1.1.1.3 Data manipulation of independent RAM</h5>
+    <p>In the list box you're able to select a single port definition. Calling
+    the context menu (right mouse button) for the selection of a memory port
+    you get a menu with the two entries:</p>
+    <ul>
+      <li>&quot;Load Memory Data...&quot;</li>
+      <li>&quot;Save Memory Data...&quot;</li>
+    </ul>
+    <p>The items of the context menu are grayed when you selected a ROM or
+    HRD module type or a RAM configured as MAIN memory. Only in the
+    case that the selected RAM module is configured as independent RAM, the
+    menu entries are enabled. Independent RAM has the signature #B3DDDDDE at
+    the beginning of the port.</p>
+    <p>With &quot;Save Memory Data...&quot; you can write the independent RAM
+    module data to a file. With &quot;Load Memory Data...&quot; you directly
+    overwrite the current independent RAM module data with file data (when
+    you leave the &quot;Port Configuration&quot; dialog with the
+    &quot;Cancel&quot; button the change is <u>persistent</u>). In this case
+    the module size has to match. The file format is compatible with
+    independent RAM files from &quot;Emu71 for DOS&quot;.</p>
+  <h5>9.1.1.1.4 Changing HP-IL TCP/IP settings</h5>
+    <p>When you call the context menu (right mouse button) on a HP-IL module
+    type you get a menu with the entry:</p>
+    <ul>
+      <li>&quot;Change TCP/IP Settings...&quot;</li>
+    </ul>
+    <p>With &quot;Change TCP/IP Settings...&quot; you get a dialog where you
+    can change the IP-Address of the next device (&quot;Out TCP/IP
+    Address&quot;), the IP-Port of the next device (&quot;Out Port (49152 -
+    65535)&quot;) and my IP-Port (&quot;In Port (49152 - 65535)&quot;) for
+    data listening in the virtual IL. The changes are <u>persistent</u>,
+    even if you leave the &quot;Port Configuration&quot; dialog with the
+    &quot;Cancel&quot; button.</p>
+  <h5>9.1.1.1.5 Button &quot;Add&quot;</h5>
+    <p>This button allows you to add a single port to the port slot. If
+    there's no port selected in the &quot;<a href="#ss9.1.1.1.2">Port list
+    box</a>&quot;, the port will be appended at the end. If a port is
+    selected, the new port will be inserted before the selection. If the
+    &quot;Add&quot; button is disabled, you are already in the port
+    configuration mode.</p>
+  <h5>9.1.1.1.6 Button &quot;Delete&quot; / &quot;Abort&quot;</h5>
+    <p>This button has two meanings, dependent on the current mode:</p>
+    <ul>
+      <li>Delete
+      <p>If there's no port selected in the
+      &quot;<a href="#ss9.1.1.1.2">Port list box</a>&quot; you delete the
+      complete port slot content. If a port is selected, only the selected
+      port is deleted.</p></li>
+      <li>Abort
+      <p>You are in the port configuration mode. Press &quot;Abort&quot;
+      to leave the port configuration mode without applying the settings.
+      </p></li>
+    </ul>
+  <h5>9.1.1.1.7 Button &quot;Apply&quot;</h5>
+    <p>This button transfer the data in the Configuration group box to the
+    list box.</p>
+  <h4>9.1.1.2 Group Box &quot;Configuration&quot;</h4>
+    <p>The fields in the &quot;Configuration&quot; group box are enabled when
+    you press the &quot;Add&quot; button.</p>
+  <h5>9.1.1.2.1 Combo box &quot;Module Type&quot;</h5>
+    <p>In this field you can choose the module type. Available are
+    &quot;RAM&quot;, &quot;ROM&quot;, &quot;HRD&quot; and &quot;HPIL&quot;.
+    </p>
+    <ul>
+      <li>RAM
+      <p>This selects a soft configured RAM port. The RAM content is filled
+      with zero at startup.</p></li>
+      <li>ROM
+      <p>This selects a soft configured ROM port. This enables the edit field
+      &quot;Filename&quot; for the ROM image filename. The ROM image file
+      must be in a packed (even address lower nibble, odd address higher
+      nibble) or unpacked (one nibble per byte with even address first) form.
+      Files in the packed form have the same format like the files used
+      in Emu71 for DOS from Jean-Fran&ccedil;ois Garnier.</p></li>
+      <li>HRD
+      <p>This selects a hard configured ROM port. This enables the edit field
+      &quot;Filename&quot; for the ROM image filename and the &quot;Hard
+      Wired Address&quot; combo box. The ROM image file format must be equal
+      to the format described in the ROM section above. In the &quot;Hard
+      Wired Address&quot; combo box you can select the address
+      &quot;00000&quot; or &quot;E0000&quot;. If you choose address
+      &quot;00000&quot; and this is a module in the Port1 slot, the internal
+      ROM is deactivated over the OD pin simulation. This is normally to
+      attach the HP-71B diagnostic ROM. Address &quot;E0000&quot; is the
+      address used for the hard wired port in the FORTH and in the HP-41
+      translator modules.</p></li>
+      <li>HPIL
+      <p>This selects the HP-IL Interface HP 82401A module. A HP-IL Interface
+      internally consists of two ports, an invisible I/O port with a size of
+      eight bytes and a standard ROM port. So this enables the edit field
+      &quot;Filename&quot; for the ROM image filename and a
+      &quot;Configure&quot; button for adjusting the TCP/IP settings for
+      the virtual IL.</p>
+      <p>With &quot;Configure&quot; you get the dialog &quot;HP-IL Interface
+      Setup&quot; where you can change the IP-Address of the next device
+      (&quot;Out TCP/IP Address&quot;), the IP-Port of the next device
+      (&quot;Out Port (49152 - 65535)&quot;) and my IP-Port (&quot;In
+      Port (49152 - 65535)&quot;) for data listening in the virtual IL.
+      </p></li>
+   </ul>
+  <h5>9.1.1.2.2 Combo box &quot;Size&quot;</h5>
+    <p>This field is only relevant for &quot;RAM&quot; ports. A
+    &quot;ROM&quot; port get it's size information from the image file size.
+    Available are different sizes from 512 bytes up to 160 KB. Be aware that
+    this size is the overall size of a single RAM port and not the overall
+    size of the RAM module in the port slot! So the HHP 96KB module from
+    above consists of three 32KB ports.</p>
+    <p>A special case is the &quot;Datafile&quot; selection. Some of the
+    larger 3rd party RAM modules have a backup battery allowing to remove
+    the RAM module without memory loss for the case that all ports in the
+    module are configured as independent RAM. To &quot;plug&quot; such a
+    RAM module into the emulator session you must have a file image of the
+    RAM content. When you select &quot;Datafile&quot; the edit field
+    &quot;Filename&quot; is enabled. Here you can enter the RAM image
+    filename. At port configuration dialog exit, the RAM content is filled
+    with the data from the RAM image file. The original RAM image file will
+    be untouched. The file format of independent RAM ports is compatible with
+    the port RAM files of the &quot;Emu71 for DOS&quot; emulator.</p>
+  <h5>9.1.1.2.3 Combo box &quot;No. of Chips&quot;</h5>
+    <p>As I mentioned before a memory chip has always a size created by power
+    of 2 operation. So a chip of 96KB size isn't possible, it must be a
+    hybrid chip of 3 or a multiple of 3 chips (3*32KB, 6*16KB, ...).
+    Furthermore I mentioned that a chip can only be located on a base address
+    which is a multiple of it's own size. For a non existing 256KB chip this
+    would be the addresses #00000 and #80000 in the Saturn address area.</p>
+    <p>When we go back to the mid of the 80ties the number of memory chip for
+    the Saturn bus was very limited. We had the 1LG7 ROM chip with a size of
+    16KB, the 1LG8 RAM chip with a size of 1KB and the 1LQ4 interface chip
+    for multi purpose use. Many 3rd party manufactures build there 32KB
+    modules with one 1LQ4 chip and 4 * 8KB static RAM chips. A single 32KB
+    instead of 4 * 8KB chips would be even smaller, but was more expensive
+    then 4 8KB chips. A 48KB ROM normally consists of 3 * 16KB 1LG7 ROM
+    chips.</p>
+    <p>Many people don't really know what they have to choose, so this combo
+    box has also an &quot;Auto&quot; selection which is default.
+    &quot;Auto&quot; choose automatically a reasonable settings depending on
+    the &quot;Module Type&quot; and &quot;Size&quot;.</p>
+    <ul>
+      <li>Auto selection for a RAM port
+      <p>If the overall module size is a multiple of &quot;32KB&quot; then
+      the &quot;No. of Chips&quot; is calculated by &quot;overall module
+      size&quot; / &quot;32KB&quot;. This is because most manufactures used
+      a 1LQ4 interface chip with 4x 8KB static RAM to create a 32KB RAM unit.
+      If the overall module size is not a multiple of &quot;32KB&quot; then
+      the &quot;No. of Chips&quot; is calculated by &quot;overall module
+      size&quot; / &quot;1KB&quot;. For the HP 4K RAM module HP82420A
+      (4x 1LG8) then you get the correct &quot;No. of Chips&quot; setting of
+      &quot;4&quot;.</p></li>
+      <li>Auto selection for a ROM port
+      <p>ROM's normally build out of a multiple of 1LG7 chips (16KB), so if
+      the overall module size is a multiple of &quot;16KB&quot; then the
+      &quot;No. of Chips&quot; is calculated by &quot;overall module
+      size&quot; / &quot;16KB&quot;. In all other cases a single chip is
+      selected. The automatic setting is wrong when you simulate the EEPROM
+      part of a EEPROM/RAM module.</p></li>
+    </ul>
+  <h4>9.1.1.3 Button &quot;OK&quot;</h4>
+    <p>Apply all configuration changes and quit the Port Configuration
+    dialog.</p>
+  <h4>9.1.1.4 Button &quot;Cancel&quot;</h4>
+    <p>Discard all configuration changes (with the exception of direct
+    independent RAM data overwriting) and quit the Port Configuration
+    dialog.</p>
+  <h3><a name=ss9.1.2>9.1.2 Module examples</a></h3>
+    <p>All examples also work with &quot;No. of Chips&quot; Auto setting. The
+    image file names for the ROM modules may differ to your image copy.</p>
+  <h4>9.1.2.1 HP 82420A 4KB memory module in Port2 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port2&quot;</li>
+    <li>Delete Port2 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 4K Byte, No. of Chips: 4</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.2 CMT or HPP 32KB memory module in Port3 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port3&quot;</li>
+    <li>Delete Port3 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.3 CMT or HPP 64KB memory module (2x 32KB ports) in Port5 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port5&quot;</li>
+    <li>Delete Port5 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.4 HPP 96KB memory module (3x 32KB ports) in Port5 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port5&quot;</li>
+    <li>Delete Port5 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.5 HPP 96KB memory module (1x 32KB, 1x 64KB ports) in Port5 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port5&quot;</li>
+    <li>Delete Port5 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 64K Byte, No. of Chips: 2</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.6 HPP 160KB memory module (5x 32KB ports) in Port5 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port5&quot;</li>
+    <li>Delete Port5 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: RAM, Size: 32K Byte, No. of Chips: 1</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.7 HP 82480A Math Pac module in Port2 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port2&quot;</li>
+    <li>Delete Port2 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: ROM, No. of Chips: 2, Filename: MATHROM.BIN</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.8 HP 82441A Forth/Assembler module in Port3 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port3&quot;</li>
+    <li>Delete Port3 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: ROM, No. of Chips: 1, Filename: FORTHROM.BIN</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: HRD, No. of Chips: 2, Filename: HRDFORTH.BIN,
+        Hard Wired Address: E0000</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.9 HP 82490A HP-41 Translator Pac module in Port3 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port3&quot;</li>
+    <li>Delete Port3 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: ROM, No. of Chips: 1, Filename: FTH41ROM.BIN</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;Add&quot; Type: HRD, No. of Chips: 2, Filename: HRDFTH41.BIN,
+        Hard Wired Address: E0000</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.10 HP-71B Diagnostic ROM module in Port1 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port1&quot;</li>
+    <li>Delete Port1 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: HRD, No. of Chips: 1, Filename: DIAG71.ROM,
+        Hard Wired Address: 00000</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.11 HP 82401A HP-IL module in Port0 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port0&quot;</li>
+    <li>Delete Port0 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: HPIL, No. of Chips: 1, Filename: HPILROM.BIN</li>
+    <li>Press &quot;Configure&quot; to open the &quot;HP-IL Interface
+    	Setup&quot; dialog and enter the virtual HP-IL parameters</li>
+    <li>Press &quot;OK&quot; to quit the &quot;HP-IL Interface Setup&quot; dialog</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h4>9.1.2.12 HP 82402A Dual HP-IL module in Port0 slot</h4>
+    <ol>
+    <li>Switch off calculator</li>
+    <li>Open the &quot;Port Configuration&quot; dialog</li>
+    <li>Select &quot;Port0&quot;</li>
+    <li>Delete Port0 content if necessary</li>
+    <li>Press &quot;Add&quot; Type: HPIL, No. of Chips: 1, Filename: HPILROM.BIN</li>
+    <li>Press &quot;Configure&quot; to open the &quot;HP-IL Interface
+    	Setup&quot; dialog and enter the virtual HP-IL parameters for
+    	the 1st loop</li>
+    <li>Press &quot;OK&quot; to quit the &quot;HP-IL Interface Setup&quot; dialog</li>
+    <li>Press &quot;Apply&quot;</li>
+
+    <li>Press &quot;Add&quot; Type: HPIL, No. of Chips: 1, Filename: HPILROM.BIN</li>
+    <li>Press &quot;Configure&quot; to open the &quot;HP-IL Interface
+    	Setup&quot; dialog and enter the virtual HP-IL parameters for
+    	the 2nd loop</li>
+    <li>Press &quot;OK&quot; to quit the &quot;HP-IL Interface Setup&quot; dialog</li>
+    <li>Press &quot;Apply&quot;</li>
+    <li>Press &quot;OK&quot; to quit the &quot;Port Configuration&quot; dialog</li>
+    <li>Switch on calculator</li>
+    </ol>
+  <h2><a name=ss9.2>9.2 Copy Screen</a></h2>
+    <p>Copy the screen content to the clipboard.</p>
+  <h2><a name=ss9.3>9.3 Copy Stack</a></h2>
+    <p>This is work in <i>CMD</i> and in <i>CALC</i> mode.</p>
+    <p>Copy the display content as &quot;String&quot; to the clipboard.</p>
+  <h2><a name=ss9.4>9.4 Paste Stack</a></h2>
+    <p>This only work in <i>CMD</i> mode.</p>
+    <p>Paste the text field content of the clipboard to the command buffer
+    of the calculator.</p>
+  <h2><a name=ss9.5>9.5 Reset Calculator</a></h2>
+    <p>This emulates the Reset pin of the internal CPU.</p>
+  <h2><a name=ss9.6>9.6 Backup</a></h2>
+  <h3><a name=ss9.6.1>9.6.1 Backup Save</a></h3>
+    <p>This saves the current emulator status into a backup slot. If the
+    backup slot already contain data, it will be overwritten.</p>
+  <h3><a name=ss9.6.2>9.6.2 Backup Restore</a></h3>
+    <p>This restores a previous saved emulator status without request. If you
+    changed the calculator model meanwhile, the emulator will switch back to
+    the old model.</p>
+  <h3><a name=ss9.6.3>9.6.3 Backup Delete</a></h3>
+    <p>This deletes the data in the backup slot.</p>
+  <h1><a name=s10>10. View Menu</a></h1>
+  <h2><a name=ss10.1>10.1 Change KML Script...</a></h2>
+    <p>This allows you to change the skin of the current emulated calculator.
+    In opposite to the New... command you see only scripts emulating the same
+    calculator.</p>
+  <h1><a name=s11>11. Tools Menu</a></h1>
+  <h2><a name=ss11.1>11.1 Disassembler...</a></h2>
+    <p>This is a simple disassembler.</p>
+    <p>Enter the address to disassemble in hexadecimal into the &quot;Address
+    (HEX)&quot; field and press &lt;Return&gt;. With the &quot;Next
+    Address&quot; button the next opcode is disassembled. With the &quot;Copy
+    Data&quot; button you can copy all selected lines inside the list box to
+    the clipboard.</p>
+  <h2><a name=ss11.2>11.2 Debugger...</a></h2>
+    <p>The assembler code debugger of the emulator. For more details refer to
+    the extra documentation of the debugger please.</p>
+  <h2><a name=ss11.3>11.3 Macro</a></h2>
+    <p>The keyboard macro recorder unit.</p>
+  	<h3><a name=ss11.3.1>11.3.1 Macro Record...</a></h3>
+      <p>Prompts a dialog to enter the macro file for the data to record. After
+      accepting the confirm message, every key event is recorded into the macro
+      file with it's time information.</p>
+  	<h3><a name=ss11.3.2>11.3.2 Macro Play...</a></h3>
+      <p>Prompts a dialog box to ask for the keyboard macro file to play. The
+      replay starts immediately after selecting the file.</p>
+  	<h3><a name=ss11.3.3>11.3.3 Macro Stop</a></h3>
+      <p>Stops recording or replaying a keyboard macro file.</p>
+  	<h3><a name=ss11.3.4>11.3.4 Macro Settings...</a></h3>
+      <p>Settings for the Macro Replay mode</p>
+      <ul>
+        <li><i>Real</i>
+        <p>Replay macro with the original recording speed.</p></li>
+        <li><i>Manual</i>
+        <p>Replay macro with the speed set by the speed slider.</p></li>
+      </ul>
+  <h1><a name=s12>12. Help Menu</a></h1>
+  <h2><a name=ss12.1>12.1 Help Topics</a></h2>
+  <p>Call this document.</p>
+  <h2><a name=ss12.2>12.2 About Emu71...</a></h2>
+  <p>The version, copyright and license message...</p>
+  <h1><a name=s13>13. Virtual HP-IL</a></h1>
+    <p>The HP-IL (Hewlett Packard Interface Loop) is an interface system
+    designed for connecting handheld devices with peripheral hardware.
+    Therefore the devices are connected over a simple 2-wire cable in a
+    loop. This allows to produce low-cost and lightweight peripherals.</p>
+    <p>Today we are simulating the handheld devices and also the peripherals.
+    It makes for example no sense to save data on a 3&frac12; inch floppy
+    disk any more. The data is much safer on a hard disk, flash memory or on
+    an optical media. Also printers with a HP-IL interface are quite old and
+    rare.</p>
+    <p>Jean-Fran&ccedil;ois Garnier published his
+    <a href="http://www.jeffcalc.hp41.eu/hpil/index.html">PIL-Box</a> project
+    in 2009 to combine real HP-IL hardware with virtual devices on a PC. He
+    called his &quot;HP-IL Peripheral emulator&quot; ILPer. ILPer simulated
+    a generic printer and a mass storage device on a PC connected over the
+    PIL-Box hardware with the real HP-IL world.</p>
+    <p>With Emu71 and ILPer we have now completely virtualized hardware
+    devices. So in consequence we have to virtualize also the HP-IL system.
+    I chose TCP/IP as transport protocol for the single data frames.
+    Choosing TCP/IP as transport protocol gives the advantage of
+    communicating with (virtualized) HP-IL devices around the world. Each
+    virtual HP-IL device contain a TCP/IP server listening for data frames
+    on the specified port number and a TCP/IP client sending the data frames
+    to a port of the next virtual device. A HP-IL data frame is normally 11
+    bits long, but TCP/IP is a byte oriented protocol, so each data frame on
+    TCP/IP is 16 bits (2 bytes) long. The remainder upper five bits are
+    filled with zero. The two bytes of a frame are transferred in network
+    byte order. <a href="http://hp.giesselink.com/hpil.htm">ILPer since
+    v1.4</a> supports the virtual HP-IL mode.</p>
+    <p>Meanwhile the actual version of ILPer simulates a generic printer, two
+    mass storage devices and a DOSLINK interface on a PC. Additional devices
+    like a HP-82163A or a HP-92198 display simulation or separate versions of
+    the DOSLINK device and the HP-IL frame Scope are also available now. With
+    a bridge software for the PIL-Box we have the possibility to connect Emu71
+    or the Virtual HP-IL interface devices with the real HP-IL world.</p>
+  <h1><a name=s14>14. License</a></h1>
+    <p>Emu71 - A HP-71B Emulator<br>
+    Copyright (C) 2018 Christoph Gie&szlig;elink</p>
+    <p>This program is free software; you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by the Free
+    Software Foundation; either version 2 of the License, or (at your option)
+    any later version.</p>
+    <p>This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+    or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.</p>
+    <p>You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.</p>
+</div>
+</body>
+</html>
