@@ -43,6 +43,8 @@ struct timerEvent {
 
 #define MAX_TIMER 10
 struct timerEvent timerEvents[MAX_TIMER];
+pthread_mutex_t timerEventsLock;
+
 
 #define MAX_FILE_MAPPING_HANDLE 10
 static HANDLE fileMappingHandles[MAX_FILE_MAPPING_HANDLE];
@@ -1611,7 +1613,7 @@ BOOL PatBlt(HDC hdcDest, int x, int y, int w, int h, DWORD rop) {
             destinationStride = androidBitmapInfo.stride;
 
             if ((ret = AndroidBitmap_lockPixels(jniEnv, bitmapMainScreen, &pixelsDestination)) < 0) {
-                LOGE("AndroidBitmap_lockPixels() failed ! error=%d", ret);
+                LOGD("AndroidBitmap_lockPixels() failed ! error=%d", ret);
                 return FALSE;
             }
         } else {
@@ -1738,7 +1740,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
             destinationStride = androidBitmapInfo.stride;
 
             if ((ret = AndroidBitmap_lockPixels(jniEnv, bitmapMainScreen, &pixelsDestination)) < 0) {
-                LOGE("AndroidBitmap_lockPixels() failed ! error=%d", ret);
+                LOGD("AndroidBitmap_lockPixels() failed ! error=%d", ret);
                 return FALSE;
             }
         } else {
@@ -1938,7 +1940,7 @@ BOOL StretchBlt(HDC hdcDest, int xDest, int yDest, int wDest, int hDest, HDC hdc
         }
 
         if(jniEnv && (ret = AndroidBitmap_unlockPixels(jniEnv, bitmapMainScreen)) < 0) {
-            LOGE("AndroidBitmap_unlockPixels() failed ! error=%d", ret);
+            LOGD("AndroidBitmap_unlockPixels() failed ! error=%d", ret);
             return FALSE;
         }
 
@@ -2225,8 +2227,10 @@ HANDLE WINAPI GetClipboardData(UINT uFormat) {
 }
 
 void deleteTimeEvent(UINT uTimerID) {
+    pthread_mutex_lock(&timerEventsLock);
     timer_delete(timerEvents[uTimerID - 1].timer);
     timerEvents[uTimerID - 1].valid = FALSE;
+    pthread_mutex_unlock(&timerEventsLock);
 }
 void timerCallback(int timerId) {
     if(timerId >= 0 && timerId < MAX_TIMER && timerEvents[timerId].valid) {
@@ -2243,6 +2247,8 @@ void timerCallback(int timerId) {
 MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_PTR dwUser, UINT fuEvent) {
     TIMER_LOGD("timeSetEvent(uDelay: %d, fuEvent: %d)", uDelay, fuEvent);
 
+    pthread_mutex_lock(&timerEventsLock);
+
     // Find a timer id
     int timerId = -1;
     for (int i = 0; i < MAX_TIMER; ++i) {
@@ -2252,7 +2258,8 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
         }
     }
     if(timerId == -1) {
-        TIMER_LOGD("timeSetEvent() ERROR: No more timer available");
+        LOGD("timeSetEvent() ERROR: No more timer available");
+        pthread_mutex_unlock(&timerEventsLock);
         return NULL;
     }
     timerEvents[timerId].timerId = timerId;
@@ -2267,8 +2274,26 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
     sev.sigev_value.sival_int = timerEvents[timerId].timerId; //this argument will be passed to cbf
     sev.sigev_notify_attributes = NULL;
     timer_t * timer = &(timerEvents[timerId].timer);
-    if (timer_create(CLOCK_MONOTONIC, &sev, timer) == -1) {
-        TIMER_LOGD("timeSetEvent() ERROR in timer_create");
+
+    // CLOCK_REALTIME 0 OK but X intervals only
+    // CLOCK_MONOTONIC 1 OK but X intervals only
+    // CLOCK_PROCESS_CPUTIME_ID 2 OK
+    // CLOCK_THREAD_CPUTIME_ID 3 NOTOK
+    // CLOCK_MONOTONIC_RAW 4 NOTOK
+    // CLOCK_REALTIME_COARSE 5 NOTOK
+    // CLOCK_MONOTONIC_COARSE 6 NOTOK
+    // CLOCK_BOOTTIME 7 OK but X intervals only
+    // CLOCK_REALTIME_ALARM 8 NOT OK EPERM
+    // CLOCK_BOOTTIME_ALARM 9 NOT OK EPERM
+    // CLOCK_SGI_CYCLE 10 NOT OK EINVAL
+    // CLOCK_TAI 11
+
+    if (timer_create(CLOCK_PROCESS_CPUTIME_ID, &sev, timer) == -1) {
+        LOGD("timeSetEvent() ERROR in timer_create, errno: %d (EAGAIN 11 / EINVAL 22 / ENOMEM 12)", errno);
+        //        EAGAIN Temporary error during kernel allocation of timer structures.
+        //        EINVAL Clock ID, sigev_notify, sigev_signo, or sigev_notify_thread_id is invalid.
+        //        ENOMEM Could not allocate memory.
+        pthread_mutex_unlock(&timerEventsLock);
         return NULL;
     }
 
@@ -2284,12 +2309,16 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
         its.it_interval.tv_nsec = 0;
     }
     if (timer_settime(timerEvents[timerId].timer, 0, &its, NULL) == -1) {
+        LOGD("timeSetEvent() ERROR in timer_settime, errno: %d (EFAULT 14 / EINVAL 22)", errno);
+        //        EFAULT new_value, old_value, or curr_value is not a valid pointer.
+        //        EINVAL timerid is invalid. Or new_value.it_value is negative; or new_value.it_value.tv_nsec is negative or greater than 999,999,999.
         timer_delete(timerEvents[timerId].timer);
-        TIMER_LOGD("timeSetEvent() ERROR in timer_settime");
+        pthread_mutex_unlock(&timerEventsLock);
         return NULL;
     }
     timerEvents[timerId].valid = TRUE;
     TIMER_LOGD("timeSetEvent() -> timerId+1: [%d]", timerId + 1);
+    pthread_mutex_unlock(&timerEventsLock);
     return (MMRESULT) (timerId + 1); // No error
 }
 MMRESULT timeKillEvent(UINT uTimerID) {

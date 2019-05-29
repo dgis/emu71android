@@ -65,6 +65,7 @@ public class PanAndScaleView extends SurfaceView {
 	protected float previousViewPanOffsetY;
 	protected float previousViewScaleFactorX;
 	protected float previousViewScaleFactorY;
+	protected boolean firstTime = false;
 
 	protected boolean viewHasChanged() {
 		if(viewPanOffsetX != previousViewPanOffsetX || viewPanOffsetY != previousViewPanOffsetY || viewScaleFactorX != previousViewScaleFactorX || viewScaleFactorY != previousViewScaleFactorY) {
@@ -315,6 +316,13 @@ public class PanAndScaleView extends SurfaceView {
 				// https://developer.android.com/training/gestures/scroll
 				scroller.forceFinished(true);
 				float velocityFactor = -1.0f;
+				//scroller.setFriction(0.00001f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
+				//scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
+				if(debug) Log.d(TAG, "scroller.fling(startX: " + (int) viewPanOffsetX + ", startY: " + (int) viewPanOffsetY
+						+ ", velocityX: " + (int)(velocityFactor * velocityX) + ", velocityY: " + (int)(velocityFactor * velocityY)
+						+ ", minX: " + viewPanMinX + ", maxX: " + 0
+						+ ", minY: " + viewPanMinY + ", maxY: " + 0
+						+ ")");
 				scroller.fling((int) viewPanOffsetX, (int) viewPanOffsetY,
 						(int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY),
 						(int)viewPanMinX, 0,
@@ -365,8 +373,10 @@ public class PanAndScaleView extends SurfaceView {
 
 		viewPanOffsetX -= deltaX;
 		viewPanOffsetY -= deltaY;
+		if(debug) Log.d(TAG, "doScroll() before constraint viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
 		constrainScale();
 		constrainPan();
+		if(debug) Log.d(TAG, "doScroll() after constraint viewPanOffsetX: " + viewPanOffsetX + ", viewPanOffsetY: " + viewPanOffsetY);
 		invalidate();
 	}
 
@@ -558,6 +568,7 @@ public class PanAndScaleView extends SurfaceView {
 		public void run() {
 			// OSD should stop now!
 			osdAllowed = false;
+			invalidate();
 		}
 	};
 
@@ -603,8 +614,12 @@ public class PanAndScaleView extends SurfaceView {
        	}
 
 		boolean viewHasChanged = viewHasChanged();
-		if(viewHasChanged)
-			startOSDTimer();
+		if(viewHasChanged) {
+			if(firstTime) {
+				firstTime = false;
+			} else
+				startOSDTimer();
+		}
 
 		if(!fillBounds && osdAllowed && showScaleThumbnail
 		//&& (viewScaleFactorX > scaleFactorMin || virtualSizeWidth > viewSizeWidth || virtualSizeHeight > viewSizeHeight)

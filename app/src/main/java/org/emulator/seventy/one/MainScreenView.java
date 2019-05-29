@@ -2,6 +2,7 @@ package org.emulator.seventy.one;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -28,7 +29,8 @@ public class MainScreenView extends PanAndScaleView {
     private int fallbackBackgroundColorType = 0;
     private int statusBarColor = 0;
     private boolean viewSized = false;
-    private boolean autoZoom = true; //false;
+    private boolean autoRotation = false;
+    private boolean autoZoom = false;
 
     public MainScreenView(Context context) {
         super(context);
@@ -138,7 +140,7 @@ public class MainScreenView extends PanAndScaleView {
         // draw method will not be called.
         setWillNotDraw(false);
 
-        //scroller.setFriction(0.0015f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
+//        scroller.setFriction(0.00001f); // ViewConfiguration.getScrollFriction(); // ViewConfiguration.SCROLL_FRICTION = 0.015f;
 //        setOnTapDownListener(new OnTapListener() {
 //            @Override
 //            public boolean onTap(View v, float x, float y) {
@@ -166,9 +168,9 @@ public class MainScreenView extends PanAndScaleView {
         int actionIndex = event.getActionIndex();
         int action = event.getActionMasked();
         switch (action) {
-        case MotionEvent.ACTION_DOWN:
-        case MotionEvent.ACTION_POINTER_DOWN:
-            //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN:
+                //Log.d(TAG, "ACTION_DOWN/ACTION_POINTER_DOWN count: " + touchCount + ", actionIndex: " + actionIndex);
                 //NativeLib.buttonDown((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
                 currentButtonTouched.remove(actionIndex);
                 if(actionIndex == 0 && event.getPointerCount() == 1)
@@ -183,10 +185,10 @@ public class MainScreenView extends PanAndScaleView {
                 if (debug) Log.d(TAG, "onTouchEvent() ACTION_DOWN false, actionIndex: " + actionIndex
                         + ", currentButtonTouched: " + currentButtonTouched.size()
                         + ", preventToScroll: " + preventToScroll + ", getPointerCount: " + event.getPointerCount());
-            break;
-        case MotionEvent.ACTION_UP:
-        case MotionEvent.ACTION_POINTER_UP:
-            //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+                //Log.d(TAG, "ACTION_UP/ACTION_POINTER_UP count: " + touchCount + ", actionIndex: " + actionIndex);
                 //NativeLib.buttonUp((int)((event.getX(actionIndex) - screenOffsetX) / screenScaleX), (int)((event.getY(actionIndex) - screenOffsetY) / screenScaleY));
                 NativeLib.buttonUp((int) ((event.getX(actionIndex) - viewPanOffsetX) / viewScaleFactorX), (int) ((event.getY(actionIndex) - viewPanOffsetY) / viewScaleFactorY));
                 currentButtonTouched.remove(actionIndex);
@@ -197,9 +199,9 @@ public class MainScreenView extends PanAndScaleView {
                 currentButtonTouched.remove(actionIndex);
                 preventToScroll = currentButtonTouched.size() > 0;
                 if (debug) Log.d(TAG, "onTouchEvent() ACTION_CANCEL, actionIndex: " + actionIndex + ", currentButtonTouched: " + currentButtonTouched.size() + ", preventToScroll: " + preventToScroll);
-            break;
-        default:
-            break;
+                break;
+            default:
+                break;
         }
         return super.onTouchEvent(event);
     }
@@ -241,32 +243,43 @@ public class MainScreenView extends PanAndScaleView {
 
     protected void updateLayout() {
         if(bitmapMainScreen != null) {
-            if (virtualSizeWidth > 0.0f && viewSizeWidth > 0.0f && !getFillBounds() && autoZoom) {
+            if (virtualSizeWidth > 0.0f && viewSizeWidth > 0.0f) {
                 float imageRatio = virtualSizeHeight / virtualSizeWidth;
                 float viewRatio = viewSizeHeight / viewSizeWidth;
-                if (imageRatio < 1.0f != viewRatio < 1.0f) {
-                    // With have different screens orientations, so we automatically zoom
-                    float translateX, translateY, scale;
-                if(viewRatio > imageRatio) {
-                        float alpha = viewRatio / imageRatio;
-                        scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
-                        translateX = viewSizeWidth - scale * virtualSizeWidth;
-                        translateY = (viewSizeHeight - scale * virtualSizeHeight) / 2.0f;
+                if(autoRotation) {
+                    if(imageRatio > 1.0f)
+                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    else
+                        ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                } else if(autoZoom) {
+                    ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                    if (imageRatio < 1.0f != viewRatio < 1.0f) {
+                        // With have different screens orientations, so we automatically zoom
+                        float translateX, translateY, scale;
+                        if (viewRatio > imageRatio) {
+                            float alpha = viewRatio / imageRatio;
+                            scale = Math.min(2, alpha) * viewSizeWidth / virtualSizeWidth;
+                            translateX = viewSizeWidth - scale * virtualSizeWidth;
+                            translateY = (viewSizeHeight - scale * virtualSizeHeight) / 2.0f;
+                        } else {
+                            float beta = imageRatio / viewRatio;
+                            scale = Math.min(2, beta) * viewSizeHeight / virtualSizeHeight;
+                            translateX = (viewSizeWidth - scale * virtualSizeWidth) / 2.0f;
+                            translateY = 0.0f;
+                        }
+
+                        viewScaleFactorX = scale;
+                        viewScaleFactorY = scale;
+                        scaleFactorMin = scale;
+                        scaleFactorMax = maxZoom * scaleFactorMin;
+                        viewPanOffsetX = translateX;
+                        viewPanOffsetY = translateY;
+
+                        constrainPan();
+                        return;
+                    }
                 } else {
-                        scale = viewSizeHeight / virtualSizeHeight;
-                        translateX = (viewSizeWidth - scale * virtualSizeWidth) / 2.0f;
-                        translateY = 0.0f;
-                }
-
-                    viewScaleFactorX = scale;
-                    viewScaleFactorY = scale;
-                    scaleFactorMin = scale;
-                    scaleFactorMax = maxZoom * scaleFactorMin;
-                    viewPanOffsetX = translateX;
-                    viewPanOffsetY = translateY;
-
-                    constrainPan();
-                    return;
+                    ((Activity)getContext()).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
                 }
             }
             // Else, the screens orientations are the same, so we set the calculator in fullscreen
@@ -310,6 +323,7 @@ public class MainScreenView extends PanAndScaleView {
                     if(oldBitmapMainScreen != null) {
                         oldBitmapMainScreen.recycle();
                     }
+                    firstTime = true;
                     setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
                     if(viewSized)
                         updateLayout();
@@ -324,18 +338,12 @@ public class MainScreenView extends PanAndScaleView {
         return bitmapMainScreen;
     }
 
-    public void setAutoZoom(boolean autoZoom, boolean isDynamic) {
-        this.autoZoom = autoZoom;
+    public void setAutoLayout(int layoutMode, boolean isDynamic) {
+        this.autoRotation = layoutMode == 1;
+        this.autoZoom = layoutMode == 2;
+        this.fillBounds = layoutMode == 3;
         if(isDynamic) {
             updateLayout();
-            invalidate();
-        }
-    }
-
-    public void setFillScreen(boolean fillScreen, boolean isDynamic) {
-        setFillBounds(fillScreen);
-        if(isDynamic) {
-            resetViewport();
             invalidate();
         }
     }
