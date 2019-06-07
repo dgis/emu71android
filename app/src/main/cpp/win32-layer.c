@@ -32,27 +32,13 @@ DWORD GetLastError(VOID) {
 }
 
 
-struct timerEvent {
-    BOOL valid;
-    int timerId;
-    LPTIMECALLBACK fptc;
-    DWORD_PTR dwUser;
-    UINT fuEvent;
-    timer_t timer;
-};
-
-#define MAX_TIMER 10
-struct timerEvent timerEvents[MAX_TIMER];
-pthread_mutex_t timerEventsLock;
-
+static void initTimer();
 
 #define MAX_FILE_MAPPING_HANDLE 10
 static HANDLE fileMappingHandles[MAX_FILE_MAPPING_HANDLE];
 
 void win32Init() {
-    for (int i = 0; i < MAX_TIMER; ++i) {
-        timerEvents[i].valid = FALSE;
-    }
+    initTimer();
     for (int i = 0; i < MAX_FILE_MAPPING_HANDLE; ++i) {
         fileMappingHandles[i] = NULL;
     }
@@ -852,9 +838,9 @@ LRESULT SendMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
     }
     return NULL;
 }
-BOOL PostMessage(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
+BOOL PostMessage(HWND handleWindow, UINT Msg, WPARAM wParam, LPARAM lParam) {
     //TODO
-    if(hWnd == 0 && Msg == WM_COMMAND) {
+    if(handleWindow == hWnd && Msg == WM_COMMAND) {
         int menuCommand = (int) ((wParam & 0xffff) - 40000);
         LOGD("Menu Item %d", menuCommand);
         sendMenuItemCommand(menuCommand);
@@ -1145,7 +1131,7 @@ MMRESULT waveOutOpen(LPHWAVEOUT phwo, UINT uDeviceID, LPCWAVEFORMATEX pwfx, DWOR
     sev.sigev_notify_attributes = NULL;
     timer_t * timer = &(handle->playerDoneTimer);
     if (timer_create(CLOCK_MONOTONIC, &sev, timer) == -1) {
-        TIMER_LOGD("timeSetEvent() ERROR in timer_create");
+        WAVE_OUT_LOGD("waveOutOpen() ERROR in timer_create");
         return NULL;
     }
 
@@ -1284,7 +1270,7 @@ MMRESULT waveOutWrite(HWAVEOUT hwo, LPWAVEHDR pwh, UINT cbwh) {
     }
 
     if (timer_settime(hwo->playerDoneTimer, 0, &(hwo->playerDoneTimerSetTimes), NULL) == -1) {
-        TIMER_LOGD("timeSetEvent() ERROR in timer_settime (playerDoneTimerSetTimes)");
+        WAVE_OUT_LOGD("waveOutWrite() ERROR in timer_settime (playerDoneTimerSetTimes)");
     }
 
 #endif
@@ -2226,12 +2212,38 @@ HANDLE WINAPI GetClipboardData(UINT uFormat) {
     return szText;
 }
 
+#if defined WIN32_TIMER_THREAD
+struct timerEvent {
+    BOOL valid;
+    int timerId;
+    LPTIMECALLBACK fptc;
+    DWORD_PTR dwUser;
+    UINT fuEvent;
+    timer_t timer;
+};
+
+#define MAX_TIMER 10
+struct timerEvent timerEvents[MAX_TIMER];
+pthread_mutex_t timerEventsLock;
+static void initTimer() {
+    for (int i = 0; i < MAX_TIMER; ++i) {
+        timerEvents[i].valid = FALSE;
+    }
+}
+
 void deleteTimeEvent(UINT uTimerID) {
     pthread_mutex_lock(&timerEventsLock);
     timer_delete(timerEvents[uTimerID - 1].timer);
     timerEvents[uTimerID - 1].valid = FALSE;
     pthread_mutex_unlock(&timerEventsLock);
 }
+
+MMRESULT timeKillEvent(UINT uTimerID) {
+    TIMER_LOGD("timeKillEvent(uTimerID: [%d])", uTimerID);
+    deleteTimeEvent(uTimerID);
+    return 0; //No error
+}
+
 void timerCallback(int timerId) {
     if(timerId >= 0 && timerId < MAX_TIMER && timerEvents[timerId].valid) {
         timerEvents[timerId].fptc((UINT) (timerId + 1), 0, (DWORD) timerEvents[timerId].dwUser, 0, 0);
@@ -2277,18 +2289,18 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
 
     // CLOCK_REALTIME 0 OK but X intervals only
     // CLOCK_MONOTONIC 1 OK but X intervals only
-    // CLOCK_PROCESS_CPUTIME_ID 2 OK
+    // CLOCK_PROCESS_CPUTIME_ID 2 NOTOK, not working with PERIODIC!
     // CLOCK_THREAD_CPUTIME_ID 3 NOTOK
     // CLOCK_MONOTONIC_RAW 4 NOTOK
     // CLOCK_REALTIME_COARSE 5 NOTOK
     // CLOCK_MONOTONIC_COARSE 6 NOTOK
     // CLOCK_BOOTTIME 7 OK but X intervals only
-    // CLOCK_REALTIME_ALARM 8 NOT OK EPERM
-    // CLOCK_BOOTTIME_ALARM 9 NOT OK EPERM
-    // CLOCK_SGI_CYCLE 10 NOT OK EINVAL
+    // CLOCK_REALTIME_ALARM 8 NOTOK EPERM
+    // CLOCK_BOOTTIME_ALARM 9 NOTOK EPERM
+    // CLOCK_SGI_CYCLE 10 NOTOK EINVAL
     // CLOCK_TAI 11
 
-    if (timer_create(CLOCK_PROCESS_CPUTIME_ID, &sev, timer) == -1) {
+    if (timer_create(CLOCK_REALTIME, &sev, timer) == -1) {
         LOGD("timeSetEvent() ERROR in timer_create, errno: %d (EAGAIN 11 / EINVAL 22 / ENOMEM 12)", errno);
         //        EAGAIN Temporary error during kernel allocation of timer structures.
         //        EINVAL Clock ID, sigev_notify, sigev_signo, or sigev_notify_thread_id is invalid.
@@ -2321,11 +2333,185 @@ MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_
     pthread_mutex_unlock(&timerEventsLock);
     return (MMRESULT) (timerId + 1); // No error
 }
+#else
+struct timerEvent {
+    int timerId;
+    UINT uDelay;
+    UINT uResolution;
+    LPTIMECALLBACK fptc;
+    DWORD_PTR dwUser;
+    UINT fuEvent;
+
+    ULONGLONG triggerTime;
+
+    struct timerEvent * next;
+    struct timerEvent * prev;
+};
+static struct timerEvent timersList;
+static int lastTimerId;
+static pthread_mutex_t timerEventsLock;
+static pthread_t timerThreadId;
+static BOOL timerThreadToEnd;
+
+static void initTimer() {
+    timersList.next = &timersList;
+    timersList.prev = &timersList;
+    timerThreadId = 0;
+    timerThreadToEnd = TRUE;
+    lastTimerId = 0;
+}
+
 MMRESULT timeKillEvent(UINT uTimerID) {
     TIMER_LOGD("timeKillEvent(uTimerID: [%d])", uTimerID);
-    deleteTimeEvent(uTimerID);
+
+    pthread_mutex_lock(&timerEventsLock);
+
+    struct timerEvent * nextTimer, * timerToFree = NULL;
+    // Search the timer by id
+    for (nextTimer = timersList.next; nextTimer != &timersList; nextTimer = nextTimer->next) {
+        if(uTimerID == nextTimer->timerId) {
+            // Remove the timer
+            nextTimer->next->prev = nextTimer->prev;
+            nextTimer->prev->next = nextTimer->next;
+            timerToFree = nextTimer;
+            break;
+        }
+    }
+    if(timersList.next == &timersList) {
+        // The list is empty
+        // Leave the thread?
+        timerThreadToEnd = TRUE;
+    }
+    pthread_mutex_unlock(&timerEventsLock);
+
+    if(timerToFree)
+        free(timerToFree);
+
     return 0; //No error
 }
+
+static void insertTimer(struct timerEvent * newTimer) {
+    struct timerEvent * nextTimer;
+    // Search where to insert this new timer
+    for (nextTimer = timersList.next; nextTimer != &timersList; nextTimer = nextTimer->next) {
+        if(newTimer->triggerTime < nextTimer->triggerTime)
+            break;
+    }
+    // Insert this new timer
+    newTimer->next = nextTimer;
+    newTimer->prev = nextTimer->prev;
+    nextTimer->prev->next = newTimer;
+    nextTimer->prev = newTimer;
+}
+
+static void dumpTimers() {
+    TIMER_LOGD("dumpTimers()");
+    for (struct timerEvent * nextTimer = timersList.next; nextTimer != &timersList; nextTimer = nextTimer->next) {
+        TIMER_LOGD("\ttimerId: %d (%x), uDelay: %d, dwUser: %d, fuEvent: %d, triggerTime: %ld)",
+                nextTimer->timerId, nextTimer, nextTimer->uDelay, nextTimer->dwUser, nextTimer->fuEvent, nextTimer->triggerTime);
+    }
+}
+
+static void timerThreadStart(LPVOID lpThreadParameter) {
+    pthread_mutex_lock(&timerEventsLock);
+    while (!timerThreadToEnd) {
+        TIMER_LOGD("timerThreadStart() %ld", GetTickCount64());
+
+        int sleep_time;
+        for (;;) {
+            struct timerEvent *timer = (timersList.next == &timersList ? NULL : timersList.next);
+            if (!timer) {
+                sleep_time = -1;
+                break;
+            }
+
+            sleep_time = timer->triggerTime - GetTickCount64();
+            if (sleep_time > 0)
+                break;
+
+            // Remove this timer from the linked list
+            timer->next->prev = timer->prev;
+            timer->prev->next = timer->next;
+
+            struct timerEvent *timerToFree;
+            if(timer->fuEvent == TIME_PERIODIC) {
+                timer->triggerTime += timer->uDelay;
+                /* Re-insert the timer */
+                insertTimer(timer);
+                timerToFree = NULL;
+            } else
+                timerToFree = timer;
+
+            // Copy the timer data because we unlock the mutex!
+            int timerId = timer->timerId;
+            LPTIMECALLBACK fptc = timer->fptc;
+            DWORD_PTR dwUser = timer->dwUser;
+
+            pthread_mutex_unlock(&timerEventsLock);
+
+            // Call the timer callback now!
+            fptc((UINT)timerId, 0, (DWORD) dwUser, 0, 0);
+
+            pthread_mutex_lock(&timerEventsLock);
+            if(timerToFree)
+                free(timerToFree);
+        }
+
+#if defined(TIMER_LOGD)
+        dumpTimers();
+#endif
+
+        if (sleep_time < 0)
+            break;
+        if (sleep_time == 0)
+            continue;
+
+        pthread_mutex_unlock(&timerEventsLock);
+        Sleep(sleep_time);
+        pthread_mutex_lock(&timerEventsLock);
+    }
+    timerThreadId = 0;
+    pthread_mutex_unlock(&timerEventsLock);
+    jniDetachCurrentThread();
+}
+
+MMRESULT timeSetEvent(UINT uDelay, UINT uResolution, LPTIMECALLBACK fptc, DWORD_PTR dwUser, UINT fuEvent) {
+    TIMER_LOGD("timeSetEvent(uDelay: %d, fuEvent: %d)", uDelay, fuEvent);
+
+    struct timerEvent * newTimer = (struct timerEvent *)malloc(sizeof(struct timerEvent));
+
+    pthread_mutex_lock(&timerEventsLock);
+
+    newTimer->timerId = ++lastTimerId;
+    newTimer->uDelay = uDelay; // In ms
+    newTimer->uResolution = uResolution;
+    newTimer->fptc = fptc;
+    newTimer->dwUser = dwUser;
+    newTimer->fuEvent = fuEvent; // TIME_ONESHOT / TIME_PERIODIC
+
+    newTimer->triggerTime = GetTickCount64() + (ULONGLONG)uDelay;
+
+    insertTimer(newTimer);
+
+    timerThreadToEnd = FALSE;
+
+    if(!timerThreadId) {
+        // If not yet created, create the thread which will handle all the timers
+        if (pthread_create(&timerThreadId, NULL, (void *(*)(void *)) timerThreadStart, NULL) != 0) {
+            LOGD("timeSetEvent() ERROR in pthread_create, errno: %d (EAGAIN 11 / EINVAL 22 / EPERM 1)", errno);
+            //        EAGAIN Insufficient resources to create another thread.
+            //        EINVAL Invalid settings in attr.
+            //        ENOMEM No permission to set the scheduling policy and parameters specified in attr.
+            pthread_mutex_unlock(&timerEventsLock);
+            return NULL;
+        }
+    }
+
+    TIMER_LOGD("timeSetEvent() -> timerId: [%d]", newTimer->timerId);
+    pthread_mutex_unlock(&timerEventsLock);
+    return (MMRESULT) newTimer->timerId; // No error
+}
+#endif
 
 MMRESULT timeGetDevCaps(LPTIMECAPS ptc, UINT cbtc) {
     if(ptc) {
@@ -2349,21 +2535,25 @@ VOID GetLocalTime(LPSYSTEMTIME lpSystemTime) {
         clock_gettime(CLOCK_REALTIME, &ts);
         time_t tim = ts.tv_sec;
         localtime_r(&tim, &tm);
-        lpSystemTime->wYear = 1900 + tm.tm_year;
-        lpSystemTime->wMonth = 1 + tm.tm_mon;
-        lpSystemTime->wDayOfWeek = tm.tm_wday;
-        lpSystemTime->wDay = tm.tm_mday;
-        lpSystemTime->wHour = tm.tm_hour;
-        lpSystemTime->wMinute = tm.tm_min;
-        lpSystemTime->wSecond = tm.tm_sec;
-        lpSystemTime->wMilliseconds = ts.tv_nsec / 1e6;
+        lpSystemTime->wYear = (WORD) (1900 + tm.tm_year);
+        lpSystemTime->wMonth = (WORD) (1 + tm.tm_mon);
+        lpSystemTime->wDayOfWeek = (WORD) (tm.tm_wday);
+        lpSystemTime->wDay = (WORD) (tm.tm_mday);
+        lpSystemTime->wHour = (WORD) (tm.tm_hour);
+        lpSystemTime->wMinute = (WORD) (tm.tm_min);
+        lpSystemTime->wSecond = (WORD) (tm.tm_sec);
+        lpSystemTime->wMilliseconds = (WORD) (ts.tv_nsec / 1e6);
     }
 }
-WORD GetTickCount(VOID) {
-    //TODO
-    return 0;
+ULONGLONG GetTickCount64(VOID) {
+    struct timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now))
+        return 0;
+    return (ULONGLONG) ((ULONGLONG)now.tv_sec * 1000UL + (ULONGLONG)now.tv_nsec / 1000000UL);
 }
-
+DWORD GetTickCount(VOID) {
+    return (DWORD)GetTickCount64();
+}
 
 BOOL EnableWindow(HWND hWnd, BOOL bEnable) {
     //TODO

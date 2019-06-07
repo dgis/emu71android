@@ -3,7 +3,7 @@
  *
  *   This file is part of Emu71
  *
- *   Copyright (C) 2010 Christoph Gieï¿½elink
+ *   Copyright (C) 2010 Christoph Gießelink
  *
  */
 #include "pch.h"
@@ -75,11 +75,9 @@ VOID SetHPTime(VOID)						// set date and time
 	}
 	return;
 }
-static int TimeProcCounter = 0;
+
 static void CALLBACK TimeProc(UINT uEventId, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
 {
-    LOGD("EMU48-time TimeProc(uEventId: %d, uMsg: %d, dwUser: 0x%08x, dw1: 0x%08x, dw2: 0x%08x) %d\r\n", uEventId, uMsg, dwUser, dw1, dw2, TimeProcCounter++);
-
 	UINT  i,uNib,uDelay;
 	DWORD dwTime,dwAddr;
 	BOOL  bSReq,bWke;
@@ -195,7 +193,6 @@ static void CALLBACK TimeProc(UINT uEventId, UINT uMsg, DWORD_PTR dwUser, DWORD_
 			uDelay = 1;						// 1 ms minimum delay
 		}
 	}
-    LOGD("EMU48-timeSetEvent(uDelay: %d, 0, TimeProc, 0, TIME_ONESHOT)\r\n", uDelay);
 	VERIFY(timeSetEvent(uDelay,0,(LPTIMECALLBACK)&TimeProc,0,TIME_ONESHOT));
 	return;
 	UNREFERENCED_PARAMETER(uMsg);
@@ -223,7 +220,6 @@ VOID StartTimers(VOID)
 	// time to read a value between two timer update calls
 
 	// set timer immediately
-    LOGD("EMU48-timeSetEvent(1, 0, TimeProc, 0, TIME_ONESHOT)\r\n");
 	VERIFY(timeSetEvent(1,0,(LPTIMECALLBACK)&TimeProc,0,TIME_ONESHOT));
 	return;
 }

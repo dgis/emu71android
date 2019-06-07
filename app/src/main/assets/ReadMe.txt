@@ -22,11 +22,14 @@ QUICK START
 1. From the left side, slide your finger to open the menu.
 2. Touch the "New..." menu item.
 3. "Select a Custom KML script folder..." where you have copied the KML scripts and ROM files.
-4. And the calculator should now be opened.
+4. Pick a calculator.
+5. And the calculator should now be opened.
 
 
 NOTES
 
+- For technical reason, this application need the Android 5.0 (API 21).
+- The Help menu displays Emu71's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
 

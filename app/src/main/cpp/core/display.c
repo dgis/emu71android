@@ -3,7 +3,7 @@
  *
  *   This file is part of Emu71
  *
- *   Copyright (C) 2010 Christoph Gieï¿½elink
+ *   Copyright (C) 2010 Christoph Gießelink
  *
  */
 #include "pch.h"
@@ -662,11 +662,8 @@ VOID UpdateAnnunciators(VOID)
 	return;
 }
 
-static int LcdProcCounter = 0;
 static VOID CALLBACK LcdProc(UINT uEventId, UINT uMsg, DWORD dwUser, DWORD dw1, DWORD dw2)
 {
-    //LOGD("EMU48-time LcdProc(uEventId: %d, uMsg: %d, dwUser: 0x%08x, dw1: 0x%08x, dw2: 0x%08x) %d\r\n", uEventId, uMsg, dwUser, dw1, dw2, LcdProcCounter++);
-
 	EnterCriticalSection(&csLcdLock);
 	{
 		if (uLcdTimerId)					// display update task still active
