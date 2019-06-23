@@ -1,6 +1,17 @@
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
 //
-// Created by cosnier on 12/11/2018.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 //
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, write to the Free Software Foundation, Inc.,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 #include <jni.h>
 #include <stdio.h>
 #include <android/asset_manager.h>
@@ -8,7 +19,7 @@
 #include <android/bitmap.h>
 
 #include "core/pch.h"
-#include "core/Emu71.h"
+#include "emu.h"
 #include "core/io.h"
 #include "core/kml.h"
 #include "win32-layer.h"
@@ -214,9 +225,14 @@ void clipboardCopyText(const TCHAR * text) {
         jclass mainActivityClass = (*jniEnv)->GetObjectClass(jniEnv, mainActivity);
         if(mainActivityClass) {
             jmethodID midStr = (*jniEnv)->GetMethodID(jniEnv, mainActivityClass, "clipboardCopyText", "(Ljava/lang/String;)V");
-            jstring messageUTF = (*jniEnv)->NewStringUTF(jniEnv, text);
+            jint length = _tcslen(text);
+            unsigned short * utf16String =  malloc(2 * (length + 1));
+            for (int i = 0; i <= length; ++i)
+                utf16String[i] = ((unsigned char *)text)[i];
+            jstring messageUTF = (*jniEnv)->NewString(jniEnv, utf16String, length);
             (*jniEnv)->CallVoidMethod(jniEnv, mainActivity, midStr, messageUTF);
             (*jniEnv)->DeleteLocalRef(jniEnv, mainActivityClass);
+            free(utf16String);
         }
     }
 }
@@ -229,11 +245,13 @@ const TCHAR * clipboardPasteText() {
             jobject result = (*jniEnv)->CallObjectMethod(jniEnv, mainActivity, midStr);
             (*jniEnv)->DeleteLocalRef(jniEnv, mainActivityClass);
             if(result) {
-                const char *strReturn = (*jniEnv)->GetStringUTFChars(jniEnv, result, 0);
-                size_t length = _tcslen(strReturn);
+                const jchar *strReturn = (*jniEnv)->GetStringChars(jniEnv, result, 0);
+                jsize length = (*jniEnv)->GetStringLength(jniEnv, result);
                 TCHAR * pasteText = (TCHAR *) GlobalAlloc(0, length + 2);
-                _tcscpy(pasteText, strReturn);
-                (*jniEnv)->ReleaseStringUTFChars(jniEnv, result, strReturn);
+                for (int i = 0; i <= length; ++i)
+                    pasteText[i] = strReturn[i] & 0xFF;
+                pasteText[length] = 0;
+                (*jniEnv)->ReleaseStringChars(jniEnv, result, strReturn);
                 return pasteText;
             }
         }
@@ -253,8 +271,19 @@ void performHapticFeedback() {
     }
 }
 
+void sendByteUdp(unsigned char byteSent) {
+    JNIEnv *jniEnv = getJNIEnvironment();
+    if(jniEnv) {
+        jclass mainActivityClass = (*jniEnv)->GetObjectClass(jniEnv, mainActivity);
+        if(mainActivityClass) {
+            jmethodID midStr = (*jniEnv)->GetMethodID(jniEnv, mainActivityClass, "sendByteUdp", "(I)V");
+            (*jniEnv)->CallVoidMethod(jniEnv, mainActivity, midStr, (int)byteSent);
+            (*jniEnv)->DeleteLocalRef(jniEnv, mainActivityClass);
+        }
+    }
+}
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_start(JNIEnv *env, jobject thisz, jobject assetMgr, jobject bitmapMainScreen0, jobject activity, jobject view) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_start(JNIEnv *env, jobject thisz, jobject assetMgr, jobject bitmapMainScreen0, jobject activity, jobject view) {
 
     chooseCurrentKmlMode = ChooseKmlMode_UNKNOWN;
     szChosenCurrentKml[0] = '\0';
@@ -341,7 +370,7 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_start(JNIEnv *env
     while (nState!=nNextState) Sleep(0);	// wait for thread initialized
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_stop(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_stop(JNIEnv *env, jobject thisz) {
 
     //if (hThread)
     SwitchToState(SM_RETURN);	// exit emulation thread
@@ -373,7 +402,7 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_stop(JNIEnv *env,
 }
 
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_changeBitmap(JNIEnv *env, jobject thisz, jobject bitmapMainScreen0) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_changeBitmap(JNIEnv *env, jobject thisz, jobject bitmapMainScreen0) {
 
     if(bitmapMainScreen) {
         (*env)->DeleteGlobalRef(env, bitmapMainScreen);
@@ -388,68 +417,68 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_changeBitmap(JNIE
 }
 
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_draw(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_draw(JNIEnv *env, jobject thisz) {
     draw();
 }
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_buttonDown(JNIEnv *env, jobject thisz, jint x, jint y) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_buttonDown(JNIEnv *env, jobject thisz, jint x, jint y) {
     return buttonDown(x, y) ? JNI_TRUE : JNI_FALSE;
 }
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_buttonUp(JNIEnv *env, jobject thisz, jint x, jint y) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_buttonUp(JNIEnv *env, jobject thisz, jint x, jint y) {
     buttonUp(x, y);
 }
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_keyDown(JNIEnv *env, jobject thisz, jint virtKey) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_keyDown(JNIEnv *env, jobject thisz, jint virtKey) {
     keyDown(virtKey);
 }
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_keyUp(JNIEnv *env, jobject thisz, jint virtKey) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_keyUp(JNIEnv *env, jobject thisz, jint virtKey) {
     keyUp(virtKey);
 }
 
 
 
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_isDocumentAvailable(JNIEnv *env, jobject thisz) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_isDocumentAvailable(JNIEnv *env, jobject thisz) {
     return bDocumentAvail ? JNI_TRUE : JNI_FALSE;
 }
-JNIEXPORT jstring JNICALL Java_org_emulator_seventy_one_NativeLib_getCurrentFilename(JNIEnv *env, jobject thisz) {
+JNIEXPORT jstring JNICALL Java_org_emulator_calculator_NativeLib_getCurrentFilename(JNIEnv *env, jobject thisz) {
     jstring result = (*env)->NewStringUTF(env, szCurrentFilename);
     return result;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_getCurrentModel(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getCurrentModel(JNIEnv *env, jobject thisz) {
     return cCurrentRomType;
 }
 
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_isBackup(JNIEnv *env, jobject thisz) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_isBackup(JNIEnv *env, jobject thisz) {
     return (jboolean) (bBackup ? JNI_TRUE : JNI_FALSE);
 }
 
-JNIEXPORT jstring JNICALL Java_org_emulator_seventy_one_NativeLib_getKMLLog(JNIEnv *env, jobject thisz) {
+JNIEXPORT jstring JNICALL Java_org_emulator_calculator_NativeLib_getKMLLog(JNIEnv *env, jobject thisz) {
     jstring result = (*env)->NewStringUTF(env, szKmlLog);
     return result;
 }
 
-JNIEXPORT jstring JNICALL Java_org_emulator_seventy_one_NativeLib_getKMLTitle(JNIEnv *env, jobject thisz) {
+JNIEXPORT jstring JNICALL Java_org_emulator_calculator_NativeLib_getKMLTitle(JNIEnv *env, jobject thisz) {
     jstring result = (*env)->NewStringUTF(env, szKmlTitle);
     return result;
 }
 
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_getPort1Plugged(JNIEnv *env, jobject thisz) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_getPort1Plugged(JNIEnv *env, jobject thisz) {
     return (jboolean) FALSE; //((Chipset.cards_status & PORT1_PRESENT) != 0);
 }
 
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_getPort1Writable(JNIEnv *env, jobject thisz) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_getPort1Writable(JNIEnv *env, jobject thisz) {
     return (jboolean) FALSE; //((Chipset.cards_status & PORT1_WRITE) != 0);
 }
 
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_getSoundEnabled(JNIEnv *env, jobject thisz) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_getSoundEnabled(JNIEnv *env, jobject thisz) {
     return (jboolean) soundAvailable;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_getGlobalColor(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getGlobalColor(JNIEnv *env, jobject thisz) {
     return (jint) dwTColor;
 }
 
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileNew(JNIEnv *env, jobject thisz, jstring kmlFilename) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileNew(JNIEnv *env, jobject thisz, jstring kmlFilename) {
     if (bDocumentAvail)
     {
         SwitchToState(SM_INVALID);
@@ -495,7 +524,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileNew(JNIEnv 
     }
     return result;
 }
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileOpen(JNIEnv *env, jobject thisz, jstring stateFilename) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileOpen(JNIEnv *env, jobject thisz, jstring stateFilename) {
     if (bDocumentAvail)
     {
         SwitchToState(SM_INVALID);
@@ -529,7 +558,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileOpen(JNIEnv
     }
     return result;
 }
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileSave(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileSave(JNIEnv *env, jobject thisz) {
     // szBufferFilename must be set before calling that!!!
     BOOL result = FALSE;
     if (bDocumentAvail)
@@ -541,7 +570,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileSave(JNIEnv
     }
     return result;
 }
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileSaveAs(JNIEnv *env, jobject thisz, jstring newStateFilename) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileSaveAs(JNIEnv *env, jobject thisz, jstring newStateFilename) {
     const char *newStateFilenameUTF8 = (*env)->GetStringUTFChars(env, newStateFilename , NULL) ;
 
     BOOL result = FALSE;
@@ -558,7 +587,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileSaveAs(JNIE
     return result;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileClose(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileClose(JNIEnv *env, jobject thisz) {
     if (bDocumentAvail)
     {
         SwitchToState(SM_INVALID);
@@ -574,7 +603,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onFileClose(JNIEn
     return FALSE;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onObjectLoad(JNIEnv *env, jobject thisz, jstring filename) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectLoad(JNIEnv *env, jobject thisz, jstring filename) {
 //    const char *filenameUTF8 = (*env)->GetStringUTFChars(env, filename , NULL) ;
 
 //    SuspendDebugger();						// suspend debugger
@@ -669,7 +698,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onObjectLoad(JNIE
     return TRUE;
 }
 
-JNIEXPORT jobjectArray JNICALL Java_org_emulator_seventy_one_NativeLib_getObjectsToSave(JNIEnv *env, jobject thisz) {
+JNIEXPORT jobjectArray JNICALL Java_org_emulator_calculator_NativeLib_getObjectsToSave(JNIEnv *env, jobject thisz) {
 
 //    if (nState != SM_RUN)
 //    {
@@ -732,7 +761,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_emulator_seventy_one_NativeLib_getObject
     return NULL;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onObjectSave(JNIEnv *env, jobject thisz, jstring filename, jbooleanArray objectsToSaveItemChecked) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectSave(JNIEnv *env, jobject thisz, jstring filename, jbooleanArray objectsToSaveItemChecked) {
     //OnObjectSave();
 
 //    const char *filenameUTF8 = (*env)->GetStringUTFChars(env, filename , NULL);
@@ -794,7 +823,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onObjectSave(JNIE
     return TRUE;
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onViewCopy(JNIEnv *env, jobject thisz, jobject bitmapScreen) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv *env, jobject thisz, jobject bitmapScreen) {
 
     AndroidBitmapInfo bitmapScreenInfo;
     int ret = AndroidBitmap_getInfo(env, bitmapScreen, &bitmapScreenInfo);
@@ -885,16 +914,16 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onViewCopy(JNIEnv
     AndroidBitmap_unlockPixels(env, bitmapScreen);
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onStackCopy(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onStackCopy(JNIEnv *env, jobject thisz) {
     OnStackCopy();
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onStackPaste(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onStackPaste(JNIEnv *env, jobject thisz) {
     //TODO Memory leak -> No GlobalFree of the paste data!!!!
     OnStackPaste();
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onViewReset(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewReset(JNIEnv *env, jobject thisz) {
     if (nState != SM_RUN)
         return;
     SwitchToState(SM_SLEEP);
@@ -902,7 +931,7 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onViewReset(JNIEn
     SwitchToState(SM_RUN);
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onViewScript(JNIEnv *env, jobject thisz, jstring kmlFilename) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onViewScript(JNIEnv *env, jobject thisz, jstring kmlFilename) {
 
     TCHAR szKmlFile[MAX_PATH];
 //    BOOL  bKMLChanged,bSucc;
@@ -993,7 +1022,7 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_onViewScript(JNIE
     return result;
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onBackupSave(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupSave(JNIEnv *env, jobject thisz) {
     UINT nOldState;
     if (pbyRom == NULL) return;
     nOldState = SwitchToState(SM_INVALID);
@@ -1001,7 +1030,7 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onBackupSave(JNIE
     SwitchToState(nOldState);
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onBackupRestore(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupRestore(JNIEnv *env, jobject thisz) {
     SwitchToState(SM_INVALID);
     RestoreBackup();
     if(hLcdDC && hLcdDC->selectedBitmap) {
@@ -1010,11 +1039,11 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onBackupRestore(J
     if (pbyRom) SwitchToState(SM_RUN);
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_onBackupDelete(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onBackupDelete(JNIEnv *env, jobject thisz) {
     ResetBackup();
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_setConfiguration(JNIEnv *env, jobject thisz, jstring key, jint isDynamic, jint intValue1, jint intValue2, jstring stringValue) {
+JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_setConfiguration(JNIEnv *env, jobject thisz, jstring key, jint isDynamic, jint intValue1, jint intValue2, jstring stringValue) {
     const char *configKey = (*env)->GetStringUTFChars(env, key, NULL) ;
     const char *configStringValue = stringValue ? (*env)->GetStringUTFChars(env, stringValue, NULL) : NULL;
 
@@ -1043,20 +1072,20 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_NativeLib_setConfiguration(
         (*env)->ReleaseStringUTFChars(env, stringValue, configStringValue);
 }
 
-JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_NativeLib_isPortExtensionPossible(JNIEnv *env, jobject thisz) {
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_isPortExtensionPossible(JNIEnv *env, jobject thisz) {
     return (cCurrentRomType=='S' || cCurrentRomType=='G' || cCurrentRomType==0 ? JNI_TRUE : JNI_FALSE);
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_getState(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getState(JNIEnv *env, jobject thisz) {
     return nState;
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_getScreenWidth(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenWidth(JNIEnv *env, jobject thisz) {
     INT nxSize,nySize;
     GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
     return nxSize; //*nLcdZoom;
 }
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_NativeLib_getScreenHeight(JNIEnv *env, jobject thisz) {
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeight(JNIEnv *env, jobject thisz) {
     INT nxSize,nySize;
     GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
     return nySize; //*nLcdZoom;
