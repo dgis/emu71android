@@ -36,11 +36,10 @@ public class InfoWebActivity extends AppCompatActivity {
 	}
 
 	@Override
-
 	public boolean onOptionsItemSelected(MenuItem item) {
 		if(item.getItemId() == homeId) {
-				finish();
-				return true;
+			finish();
+			return true;
 		}
 		return super.onOptionsItemSelected(item);
 	}

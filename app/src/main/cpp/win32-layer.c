@@ -1197,7 +1197,8 @@ MMRESULT waveOutClose(HWAVEOUT handle) {
     sem_destroy(&handle->waveOutLock);
 #else
     onPlayerDone(handle);
-    timer_delete(handle->playerDoneTimer);
+    if(handle->playerDoneTimer)
+        timer_delete(handle->playerDoneTimer);
 #endif
 
     memset(handle, 0, sizeof(struct _HWAVEOUT));
@@ -2643,7 +2644,7 @@ PIDLIST_ABSOLUTE SHBrowseForFolderA(LPBROWSEINFOA lpbi) {
     return NULL;
 }
 #ifndef IDD_USERCODE
-#define IDD_USERCODE 121
+    #define IDD_USERCODE 121
 #endif
 INT_PTR DialogBoxParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM dwInitParam) {
     //TODO
