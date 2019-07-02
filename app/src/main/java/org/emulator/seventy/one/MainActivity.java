@@ -105,6 +105,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     public static final int INTENT_PICK_KML_FOLDER_FOR_SETTINGS = 9;
     public static final int INTENT_PICK_KML_FOLDER_FOR_SECURITY = 10;
     public static final int INTENT_CREATE_RAM_CARD = 11;
+    public static final int INTENT_MACRO_LOAD = 12;
+    public static final int INTENT_MACRO_SAVE = 13;
 
     private String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
@@ -370,6 +372,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 //            OnViewPrinter();
 //        } else if (id == R.id.nav_create_ram_card) {
 //            OnCreateRAMCard();
+        } else if (id == R.id.nav_macro_record) {
+            OnMacroRecord();
+        } else if (id == R.id.nav_macro_play) {
+            OnMacroPlay();
+        } else if (id == R.id.nav_macro_stop) {
+            OnMacroStop();
         } else if (id == R.id.nav_help) {
             OnTopics();
         } else if (id == R.id.nav_about) {
@@ -401,21 +409,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void updateNavigationDrawerItems() {
         Menu menu = navigationView.getMenu();
-        boolean isDocumentAvailable = NativeLib.isDocumentAvailable();
         boolean isBackup = NativeLib.isBackup();
-        menu.findItem(R.id.nav_save).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_save_as).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_close).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_load_object).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_save_object).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_copy_screen).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_copy_stack).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_paste_stack).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_reset_calculator).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_backup_save).setEnabled(isDocumentAvailable);
-        menu.findItem(R.id.nav_backup_restore).setEnabled(isDocumentAvailable && isBackup);
-        menu.findItem(R.id.nav_backup_delete).setEnabled(isDocumentAvailable && isBackup);
-        menu.findItem(R.id.nav_change_kml_script).setEnabled(isDocumentAvailable);
+        int cCurrentRomType = NativeLib.getCurrentModel();
+        int nMacroState = NativeLib.getMacroState();
+
+        boolean uRun = NativeLib.isDocumentAvailable();
+        boolean bObjectEnable = uRun;
+        boolean bStackCEnable = uRun;
+        boolean bStackPEnable = uRun;
+
+        menu.findItem(R.id.nav_save).setEnabled(uRun);
+        menu.findItem(R.id.nav_save_as).setEnabled(uRun);
+        menu.findItem(R.id.nav_close).setEnabled(uRun);
+        menu.findItem(R.id.nav_load_object).setEnabled(uRun && bObjectEnable);
+        menu.findItem(R.id.nav_save_object).setEnabled(uRun && bObjectEnable);
+        menu.findItem(R.id.nav_copy_screen).setEnabled(uRun);
+        menu.findItem(R.id.nav_copy_stack).setEnabled(uRun && bStackCEnable);
+        menu.findItem(R.id.nav_paste_stack).setEnabled(uRun && bStackPEnable);
+        menu.findItem(R.id.nav_reset_calculator).setEnabled(uRun);
+        menu.findItem(R.id.nav_backup_save).setEnabled(uRun);
+        menu.findItem(R.id.nav_backup_restore).setEnabled(uRun && isBackup);
+        menu.findItem(R.id.nav_backup_delete).setEnabled(uRun && isBackup);
+        menu.findItem(R.id.nav_change_kml_script).setEnabled(uRun);
+        menu.findItem(R.id.nav_macro_record).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
+        menu.findItem(R.id.nav_macro_play).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
+        menu.findItem(R.id.nav_macro_stop).setEnabled(uRun && nMacroState != 0 /* MACRO_OFF */);
     }
 
     class KMLScriptItem {
@@ -655,7 +673,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
-                intent.putExtra(Intent.EXTRA_TITLE, "emu71-state.e71");
+                intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-state.e71");
                 startActivityForResult(intent, INTENT_GETOPENFILENAME);
             }
         });
@@ -669,7 +687,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         intent.setType("*/*");
         int model = NativeLib.getCurrentModel();
         String extension = "e71";
-        intent.putExtra(Intent.EXTRA_TITLE, "emu71-state." + extension);
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-state." + extension);
         startActivityForResult(intent, INTENT_GETSAVEFILENAME);
     }
     private void OnFileClose() {
@@ -691,6 +709,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         }, true);
     }
+
     private void OnSettings() {
         startActivityForResult(new Intent(this, SettingsActivity.class), INTENT_SETTINGS);
     }
@@ -699,7 +718,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_TITLE, "emu71-object.hp");
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-object.hp");
         startActivityForResult(intent, INTENT_OBJECT_LOAD);
     }
 
@@ -724,7 +743,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_TITLE, "emu71-object.hp");
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-object.hp");
         startActivityForResult(intent, INTENT_OBJECT_SAVE);
     }
     private void OnObjectSave() {
@@ -763,7 +782,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         NativeLib.onViewCopy(bitmapScreen);
 
-        String imageFilename = "Emu71-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
+        String imageFilename = getString(R.string.filename) + "-" + new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
         try {
             File storagePath = new File(this.getExternalCacheDir(), "");
             File imageFile = File.createTempFile(imageFilename, ".png", storagePath);
@@ -944,6 +963,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }).show();
     }
 
+    private void OnMacroRecord() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-macro.mac");
+        startActivityForResult(intent, INTENT_MACRO_SAVE);
+    }
+
+    private void OnMacroPlay() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-macro.mac");
+        startActivityForResult(intent, INTENT_MACRO_LOAD);
+    }
+
+    private void OnMacroStop() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                NativeLib.onToolMacroStop();
+                updateNavigationDrawerItems();
+            }
+        });
+    }
+
     private void OnTopics() {
         startActivity(new Intent(this, InfoWebActivity.class));
     }
@@ -1084,6 +1129,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                                 selectedRAMSize = -1;
                             }
 
+                            break;
+                        }
+                        case INTENT_MACRO_LOAD: {
+                            //Log.d(TAG, "onActivityResult INTENT_MACRO_LOAD " + url);
+                            NativeLib.onToolMacroPlay(url);
+                            updateNavigationDrawerItems();
+                            break;
+                        }
+                        case INTENT_MACRO_SAVE: {
+                            //Log.d(TAG, "onActivityResult INTENT_MACRO_SAVE " + url);
+                            NativeLib.onToolMacroNew(url);
+                            updateNavigationDrawerItems();
                             break;
                         }
                         default:
@@ -1320,6 +1377,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case 24: // TOOL_MACRO_PLAY
                 break;
             case 25: // TOOL_MACRO_STOP
+                OnMacroStop();
                 break;
             case 26: // TOOL_MACRO_SETTINGS
                 break;
@@ -1401,7 +1459,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             String[] settingKeys = {
                     "settings_realspeed", "settings_grayscale", "settings_rotation", "settings_auto_layout",
                     "settings_hide_bar", "settings_hide_button_menu", "settings_sound_volume", "settings_haptic_feedback",
-                    "settings_background_kml_color", "settings_background_fallback_color", "settings_printer_model",
+                    "settings_background_kml_color", "settings_background_fallback_color", "settings_printer_model", "settings_macro",
                     "settings_kml", "settings_port1", "settings_port2" };
             for (String settingKey : settingKeys) {
                 updateFromPreferences(settingKey, false);
@@ -1478,6 +1536,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         // https://stackoverflow.com/questions/26744842/how-to-use-the-new-sd-card-access-api-presented-for-android-5-0-lollipop
                     }
                     kmFolderChange = true;
+                    break;
+
+                case "settings_macro":
+                case "settings_macro_real_speed":
+                case "settings_macro_manual_speed":
+                    boolean macroRealSpeed = sharedPreferences.getBoolean("settings_macro_real_speed", true);
+                    int macroManualSpeed = sharedPreferences.getInt("settings_macro_manual_speed", 500);
+                    NativeLib.setConfiguration("settings_macro", isDynamicValue, macroRealSpeed ? 1 : 0, macroManualSpeed, null);
                     break;
 
                 case "settings_port1":

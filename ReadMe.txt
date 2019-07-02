@@ -1,7 +1,7 @@
 DESCRIPTION
 
 This project ports the Windows application Emu71 written in C to Android.
-It uses the Android NDK. The former Emu71 source code remains untouched because of a thin win32 emulation layer above Linux/NDK!
+It uses the Android NDK. The former Emu71 source code (written by Christoph Giesselink) remains untouched because of a thin win32 emulation layer above Linux/NDK!
 This win32 layer will allow to easily update from the original Emu71 source code.
 It can open or save the exact same state files (state.e??) than the original Windows application!
 
