@@ -24,7 +24,10 @@ public class NativeLib {
         System.loadLibrary("native-lib");
     }
 
-    public static native void start(AssetManager mgr, Bitmap bitmapMainScreen, Activity activity, MainScreenView view);
+    public static final int CALLBACK_TYPE_INVALIDATE = 0;
+    public static final int CALLBACK_TYPE_WINDOW_RESIZE = 1;
+
+    public static native void start(AssetManager mgr, Activity activity);
     public static native void stop();
     public static native void changeBitmap(Bitmap bitmapMainScreen);
     public static native void draw();
@@ -71,6 +74,8 @@ public class NativeLib {
     public static native void setConfiguration(String key, int isDynamic, int intValue1, int intValue2, String stringValue);
     public static native boolean isPortExtensionPossible();
     public static native int getState();
+    public static native int getScreenPositionX();
+    public static native int getScreenPositionY();
     public static native int getScreenWidth();
     public static native int getScreenHeight();
 }
