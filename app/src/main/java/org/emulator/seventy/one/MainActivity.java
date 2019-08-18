@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private PrinterSimulator printerSimulator = new PrinterSimulator();
     private PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
     private Bitmap bitmapIcon;
+    private PortSettingsFragment fragmentPortSettings = new PortSettingsFragment();
 
 
     @Override
@@ -347,6 +348,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             OnFileClose();
         } else if (id == R.id.nav_settings) {
             OnSettings();
+        } else if (id == R.id.nav_port_configuration) {
+            OnPortConfiguration();
         } else if (id == R.id.nav_load_object) {
             OnObjectLoad();
         } else if (id == R.id.nav_save_object) {
@@ -695,6 +698,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         startActivityForResult(new Intent(this, SettingsActivity.class), INTENT_SETTINGS);
     }
 
+    private void OnPortConfiguration() {
+        fragmentPortSettings.show(getSupportFragmentManager(), "PortConfigurationFragment");
+    }
+
     private void openDocument() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -833,7 +840,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void OnViewPrinter() {
-        fragmentPrinterSimulator.show(getSupportFragmentManager(), "Hello Fragment");
+        fragmentPrinterSimulator.show(getSupportFragmentManager(), "PrinterSimulatorFragment");
     }
 
     private void showKMLPicker(boolean changeKML) {

@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.4.1)
 #add_compile_options(-DDEBUG_SOUND)
 #add_compile_options(-DDEBUG_DEBUGGER)
 #add_compile_options(-DDEBUG_IO)
+add_compile_options(-DDEBUG_TCPIP)
 
 #add_compile_options(-DDEBUG_ANDROID_WAVE_OUT)
 #add_compile_options(-DDEBUG_ANDROID_TIMER)
@@ -47,10 +48,10 @@ add_library( # Sets the name of the library.
         src/main/cpp/core/external.c
         src/main/cpp/core/fetch.c
         src/main/cpp/core/files.c
-#        src/main/cpp/core/hpil.c #NEW
-#        src/main/cpp/core/hpilbuf.c #NEW
-#        src/main/cpp/core/hpilcmd.c #NEW
-#        src/main/cpp/core/hpildev.c #NEW
+        src/main/cpp/core/hpil.c #NEW
+        src/main/cpp/core/hpilbuf.c #NEW
+        src/main/cpp/core/hpilcmd.c #NEW
+        src/main/cpp/core/hpildev.c #NEW
         src/main/cpp/core/keyboard.c
         src/main/cpp/core/keymacro.c
         src/main/cpp/core/kml.c
@@ -59,19 +60,20 @@ add_library( # Sets the name of the library.
         src/main/cpp/core/mru.c
         src/main/cpp/core/opcodes.c
         src/main/cpp/core/pch.c
-#        src/main/cpp/core/portcfg.c #NEW
-#        src/main/cpp/core/portmem.c #NEW
-#        src/main/cpp/core/satmem.c #NEW
+#        src/main/cpp/core/portcfg.c #NEW #-> To rewrite
+        src/main/cpp/core/portmem.c #NEW
+        src/main/cpp/core/satmem.c #NEW
         src/main/cpp/core/settings.c
 #        src/main/cpp/core/sndenum.c
         src/main/cpp/core/sound.c
         src/main/cpp/core/stack.c
         src/main/cpp/core/symbfile.c
-#        src/main/cpp/core/tcpip.c #NEW
+        src/main/cpp/core/tcpip.c #NEW
         src/main/cpp/core/timer.c
 
         src/main/cpp/win32-layer.c
         src/main/cpp/android-layer.c
+        src/main/cpp/android-portcfg.c # portcfg.c rewrite
         src/main/cpp/android-emu.c # Emu71.c rewrite
         src/main/cpp/emu-jni.c
 )

@@ -27,6 +27,7 @@
     <string name="nav_save">Save</string>
     <string name="nav_save_as">Save As...</string>
     <string name="nav_close">Close</string>
+    <string name="nav_port_configuration">Port Configuration...</string>
     <string name="nav_load_object">Load Object...</string>
     <string name="nav_save_object">Save Object...</string>
     <string name="nav_copy_screen">Copy Screen</string>
@@ -63,6 +64,8 @@
     <string name="menu_printer_simulator_share_text">Share Text</string>
     <string name="menu_printer_simulator_share_graphic">Share Graphic</string>
     <string name="menu_printer_simulator_change_paper">Change Paper (Erase)</string>
+
+    <string name="dialog_port_configuration_title">Port Configuration</string>
 
     <string name="create_ram_card_title">Create RAM Card</string>
     <string name="message_open_security">Permission Denied</string>
