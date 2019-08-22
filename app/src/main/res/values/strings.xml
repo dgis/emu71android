@@ -66,6 +66,18 @@
     <string name="menu_printer_simulator_change_paper">Change Paper (Erase)</string>
 
     <string name="dialog_port_configuration_title">Port Configuration</string>
+    <string name="button_port_configuration_add">Add</string>
+    <string name="button_port_configuration_abort">Abort</string>
+    <string name="button_port_configuration_delete">Delete</string>
+    <string name="button_port_configuration_apply">Apply</string>
+    <string name="label_port_configuration_module_type">Module Type</string>
+    <string name="label_port_configuration_size">Size</string>
+    <string name="label_port_configuration_no_of_chips">No. of Chips</string>
+    <string name="label_port_configuration_filename">Filename</string>
+    <string name="label_port_configuration_browse">...</string>
+    <string name="button_port_configuration_configure">Configure</string>
+    <string name="label_port_configuration_hard_wired_address">Hard Wired Address</string>
+    <string name="label_port_configuration_tcp_ip_configuration">TCP/IP Configuration</string>
 
     <string name="create_ram_card_title">Create RAM Card</string>
     <string name="message_open_security">Permission Denied</string>

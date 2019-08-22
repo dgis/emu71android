@@ -68,4 +68,53 @@
         <!--<item>2</item>-->
     </string-array>
 
+    <string-array name="port_configuration_ports">
+        <item>Port0</item>
+        <item>Port1</item>
+        <item>Port2</item>
+        <item>Port3</item>
+        <item>Port4</item>
+        <item>Port5</item>
+    </string-array>
+
+    <string-array name="port_configuration_mod_type">
+        <item>RAM</item>
+        <item>ROM</item>
+        <item>HRD</item>
+        <item>HPIL</item>
+    </string-array>
+
+    <string-array name="port_configuration_hard_addr">
+        <item>00000</item>
+        <item>E0000</item>
+    </string-array>
+
+    <string-array name="port_configuration_ram_rom_size">
+        <item>Datafile</item>
+        <item>512 Byte</item>
+        <item>1K Byte</item>
+        <item>2K Byte</item>
+        <item>4K Byte</item>
+        <item>8K Byte</item>
+        <item>16K Byte</item>
+        <item>32K Byte</item>
+        <item>64K Byte</item>
+        <item>96K Byte</item>
+        <item>128K Byte</item>
+        <item>160K Byte</item>
+        <item>192K Byte</item>
+    </string-array>
+
+    <string-array name="port_configuration_chips">
+        <item>Auto</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+    </string-array>
+
 </resources>
