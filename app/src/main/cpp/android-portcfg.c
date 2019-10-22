@@ -12,30 +12,32 @@
 #include "core/ops.h"
 #include "core/io.h"
 
+#include "android-portcfg.h"
+
 #define IRAMSIG		0xEDDDDD3B				// independent RAM signature (byte reverse order)
 
-typedef struct _NUMSTR
-{
-	DWORD	dwData;							// data as number
-	LPCTSTR	lpszData;						// data as string
-} NUMSTR, *PNUMSTR;
+//typedef struct _NUMSTR
+//{
+//	DWORD	dwData;							// data as number
+//	LPCTSTR	lpszData;						// data as string
+//} NUMSTR, *PNUMSTR;
 
-typedef struct _PORTCFG
-{
-	UINT	nIndex;							// logical no. in port queue
-	BOOL	bApply;							// module setting applied
-	UINT	nType;							// MODULETYPE
-	DWORD	dwBase;							// base address of module
-	DWORD	dwSize;							// size of hybrid chip in nibbles
-	DWORD	dwChips;						// internal no. of chips
-	LPBYTE	pbyData;						// pointer to original data
-	TCHAR	szFileName[MAX_PATH];			// filename for ROM
-	LPSTR	lpszAddrOut;					// tcp/ip address of HPIL target server
-	WORD	wPortOut;						// tcp/ip port of HPIL target server
-	WORD	wPortIn;						// tcp/ip port of my HPIL receive server
-	PPORTTCPIP psTcp;						// tcp/ip settings of original HPIL module
-	struct _PORTCFG *pNext;					// next module in same queue
-} PORTCFG, *PPORTCFG;
+//typedef struct _PORTCFG
+//{
+//	UINT	nIndex;							// logical no. in port queue
+//	BOOL	bApply;							// module setting applied
+//	UINT	nType;							// MODULETYPE
+//	DWORD	dwBase;							// base address of module
+//	DWORD	dwSize;							// size of hybrid chip in nibbles
+//	DWORD	dwChips;						// internal no. of chips
+//	LPBYTE	pbyData;						// pointer to original data
+//	TCHAR	szFileName[MAX_PATH];			// filename for ROM
+//	LPSTR	lpszAddrOut;					// tcp/ip address of HPIL target server
+//	WORD	wPortOut;						// tcp/ip port of HPIL target server
+//	WORD	wPortIn;						// tcp/ip port of my HPIL receive server
+//	PPORTTCPIP psTcp;						// tcp/ip settings of original HPIL module
+//	struct _PORTCFG *pNext;					// next module in same queue
+//} PORTCFG, *PPORTCFG;
 
 // ports to select
 static LPCTSTR lpszPorts[] =
@@ -43,39 +45,39 @@ static LPCTSTR lpszPorts[] =
 	_T("Port0"), _T("Port1"), _T("Port2"), _T("Port3"), _T("Port4"), _T("Port5")
 };
 
-// valid module types
-static NUMSTR sModType[] =
-{
-	{ TYPE_RAM,  _T("RAM")  },
-	{ TYPE_ROM,  _T("ROM")  },
-	{ TYPE_HRD,  _T("HRD")  },
-	{ TYPE_HPIL, _T("HPIL") }
-};
-
-// valid hard wired module address
-static NUMSTR sHrdAddr[] =
-{
-	{ 0x00000, _T("00000") },
-	{ 0xE0000, _T("E0000") }
-};
-
-// valid RAM / ROM sizes
-static NUMSTR sMod[] =
-{
-	{          0, _T("Datafile")  },
-	{       1024, _T("512 Byte")  },
-	{   1 * 2048, _T("1K Byte")   },
-	{   2 * 2048, _T("2K Byte")   },
-	{   4 * 2048, _T("4K Byte")   },
-	{   8 * 2048, _T("8K Byte")   },
-	{  16 * 2048, _T("16K Byte")  },
-	{  32 * 2048, _T("32K Byte")  },
-	{  64 * 2048, _T("64K Byte")  },
-	{  96 * 2048, _T("96K Byte")  },
-	{ 128 * 2048, _T("128K Byte") },
-	{ 160 * 2048, _T("160K Byte") },
-	{ 192 * 2048, _T("192K Byte") }
-};
+//// valid module types
+//static NUMSTR sModType[] =
+//{
+//	{ TYPE_RAM,  _T("RAM")  },
+//	{ TYPE_ROM,  _T("ROM")  },
+//	{ TYPE_HRD,  _T("HRD")  },
+//	{ TYPE_HPIL, _T("HPIL") }
+//};
+//
+//// valid hard wired module address
+//static NUMSTR sHrdAddr[] =
+//{
+//	{ 0x00000, _T("00000") },
+//	{ 0xE0000, _T("E0000") }
+//};
+//
+//// valid RAM / ROM sizes
+//static NUMSTR sMod[] =
+//{
+//	{          0, _T("Datafile")  },
+//	{       1024, _T("512 Byte")  },
+//	{   1 * 2048, _T("1K Byte")   },
+//	{   2 * 2048, _T("2K Byte")   },
+//	{   4 * 2048, _T("4K Byte")   },
+//	{   8 * 2048, _T("8K Byte")   },
+//	{  16 * 2048, _T("16K Byte")  },
+//	{  32 * 2048, _T("32K Byte")  },
+//	{  64 * 2048, _T("64K Byte")  },
+//	{  96 * 2048, _T("96K Byte")  },
+//	{ 128 * 2048, _T("128K Byte") },
+//	{ 160 * 2048, _T("160K Byte") },
+//	{ 192 * 2048, _T("192K Byte") }
+//};
 
 // no. of chips in hybrid module
 static LPCTSTR lpszChips[] =
@@ -86,8 +88,8 @@ static LPCTSTR lpszChips[] =
 static UINT nActPort = 0;					// the actual port
 static UINT nUnits = 0;						// no. of applied port units in the actual port slot
 
-static BOOL		bChanged[ARRAYSIZEOF(lpszPorts)];
-static PPORTCFG psPortCfg[ARRAYSIZEOF(lpszPorts)];
+/*static*/ BOOL		bChanged[ARRAYSIZEOF(lpszPorts)];
+/*static*/ PPORTCFG psPortCfg[ARRAYSIZEOF(lpszPorts)];
 
 static VOID DelPort(UINT nPort);
 static INT_PTR OnEditTcpIpSettings(HWND hDlg,PPORTCFG psCfg);
@@ -98,17 +100,17 @@ static INT_PTR OnEditTcpIpSettings(HWND hDlg,PPORTCFG psCfg);
 //#
 //################
 
-static UINT GetModuleID(UINT nType)
-{
-	UINT i;
-
-	for (i = 0; i < ARRAYSIZEOF(sModType); ++i)
-	{
-		if ((UINT) sModType[i].dwData == nType)
-			return i;
-	}
-	return (UINT) -1;
-}
+//static UINT GetModuleID(UINT nType)
+//{
+//	UINT i;
+//
+//	for (i = 0; i < ARRAYSIZEOF(sModType); ++i)
+//	{
+//		if ((UINT) sModType[i].dwData == nType)
+//			return i;
+//	}
+//	return (UINT) -1;
+//}
 
 static PPORTCFG *CfgModule(UINT nPort)
 {
@@ -126,7 +128,7 @@ static PPORTCFG *CfgModule(UINT nPort)
 	return ppsCfg;
 }
 
-static VOID LoadCurrPortConfig(VOID)
+/*static*/ VOID LoadCurrPortConfig(VOID)
 {
 	UINT i,j;
 
@@ -624,25 +626,25 @@ static VOID Cleanup(VOID)
 //	SetFocus(GetDlgItem(hDlg,IDC_CFG_DEL));	// set focus on "Del" button
 //	return 0;
 //}
-//
-//static VOID DelPort(UINT nPort)
-//{
-//	PPORTCFG psCfg,psNext;
-//
-//	// free allocated module memory queue
-//	for (psCfg = psPortCfg[nPort]; psCfg != NULL; psCfg = psNext)
-//	{
-//		if (psCfg->lpszAddrOut != NULL)
-//		{
-//			free(psCfg->lpszAddrOut);
-//		}
-//		psNext = psCfg->pNext;				// next module
-//		free(psCfg);
-//	}
-//	psPortCfg[nPort] = NULL;
-//	return;
-//}
-//
+
+static VOID DelPort(UINT nPort)
+{
+	PPORTCFG psCfg,psNext;
+
+	// free allocated module memory queue
+	for (psCfg = psPortCfg[nPort]; psCfg != NULL; psCfg = psNext)
+	{
+		if (psCfg->lpszAddrOut != NULL)
+		{
+			free(psCfg->lpszAddrOut);
+		}
+		psNext = psCfg->pNext;				// next module
+		free(psCfg);
+	}
+	psPortCfg[nPort] = NULL;
+	return;
+}
+
 //static VOID DelPortCfg(UINT nPort)
 //{
 //	PPORTCFG *ppsCfg,psNext;

@@ -17,12 +17,14 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <android/bitmap.h>
+#include <malloc.h>
 
 #include "core/pch.h"
 #include "emu.h"
 #include "core/io.h"
 #include "core/kml.h"
 #include "win32-layer.h"
+#include "android-portcfg.h"
 
 extern AAssetManager * assetManager;
 static jobject mainActivity = NULL;
@@ -875,7 +877,7 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onViewCopy(JNIEnv 
     hBmp = (HBITMAP) SelectObject(hBmpDC,hBmp);
 
     // fill BITMAP structure for size information
-    GetObject((HANDLE) hBmp, sizeof(bm), &bm);
+    GetObject((HGDIOBJ) hBmp, sizeof(bm), &bm);
 
     wBits = bm.bmPlanes * bm.bmBitsPixel;
     // make sure bits per pixel is valid
@@ -1129,4 +1131,220 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeight(JN
     INT nxSize,nySize;
     GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
     return nySize; //*nLcdZoom;
+}
+
+
+JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_loadCurrPortConfig(JNIEnv *env, jobject thisz) {
+    LoadCurrPortConfig();
+}
+
+enum PORT_DATA_TYPE {
+    PORT_DATA_INDEX = 0,
+    PORT_DATA_APPLY,
+    PORT_DATA_TYPE,
+    PORT_DATA_BASE,
+    PORT_DATA_SIZE,
+    PORT_DATA_CHIPS,
+    PORT_DATA_DATA,
+    PORT_DATA_FILENAME,
+    PORT_DATA_ADDR_OUT,
+    PORT_DATA_PORT_OUT,
+    PORT_DATA_PORT_IN,
+    PORT_DATA_TCP_ADDR_OUT,
+    PORT_DATA_TCP_PORT_OUT,
+    PORT_DATA_TCP_PORT_IN,
+    PORT_DATA_NEXT_INDEX
+};
+
+extern PPORTCFG psPortCfg[];
+
+JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPortCfgInteger(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType) {
+    PPORTCFG psCfg = psPortCfg[port];
+    if(!psCfg)
+        return -1;
+    int currentPortIndex = 0;
+    while(currentPortIndex != portIndex && psCfg->pNext) {
+        currentPortIndex++;
+        psCfg = psCfg->pNext;
+    }
+    if(currentPortIndex == portIndex) {
+        switch (portDataType) {
+            case PORT_DATA_INDEX:
+                // Logical index. May not be linear.
+                return psCfg->nIndex;
+            case PORT_DATA_APPLY:
+                return psCfg->bApply;
+            case PORT_DATA_TYPE:
+                return psCfg->nType;
+            case PORT_DATA_BASE:
+                return psCfg->dwBase;
+            case PORT_DATA_SIZE:
+                return psCfg->dwSize;
+            case PORT_DATA_CHIPS:
+                return psCfg->dwChips;
+//            case PORT_DATA_DATA:
+//                return psCfg->pbyData;
+            case PORT_DATA_PORT_OUT:
+                return psCfg->wPortOut;
+            case PORT_DATA_PORT_IN:
+                return psCfg->wPortIn;
+            case PORT_DATA_TCP_PORT_OUT:
+                return psCfg->psTcp->wPortOut;
+            case PORT_DATA_TCP_PORT_IN:
+                return psCfg->psTcp->wPortIn;
+            case PORT_DATA_NEXT_INDEX:
+                if(psCfg->pNext)
+                    return currentPortIndex + 1;
+                else
+                    return -1;
+            default:
+                ;
+        }
+    }
+
+    return -1;
+}
+
+JNIEXPORT jstring JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPortCfgString(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType) {
+    PPORTCFG psCfg = psPortCfg[port];
+    int currentPortIndex = 0;
+    while(currentPortIndex != portIndex && psCfg->pNext) {
+        currentPortIndex++;
+        psCfg = psCfg->pNext;
+    }
+    if(currentPortIndex == portIndex) {
+        switch (portDataType) {
+            case PORT_DATA_FILENAME:
+                return (*env)->NewStringUTF(env, psCfg->szFileName);
+            case PORT_DATA_ADDR_OUT:
+                return (*env)->NewStringUTF(env, psCfg->lpszAddrOut);
+            case PORT_DATA_TCP_ADDR_OUT:
+                return (*env)->NewStringUTF(env, psCfg->psTcp->lpszAddrOut);
+            default:
+                ;
+        }
+    }
+
+    return -1;
+}
+
+
+JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_setPortCfgInteger(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType, jint value) {
+    PPORTCFG psCfg = psPortCfg[port];
+    int currentPortIndex = 0;
+    while(currentPortIndex != portIndex && psCfg->pNext) {
+        currentPortIndex++;
+        psCfg = psCfg->pNext;
+    }
+    if(currentPortIndex == portIndex) {
+        switch (portDataType) {
+            case PORT_DATA_INDEX:
+                // Logical index. May not be linear.
+                psCfg->nIndex = (UINT)value;
+                return JNI_TRUE;
+            case PORT_DATA_APPLY:
+                psCfg->bApply = value;
+                return JNI_TRUE;
+            case PORT_DATA_TYPE:
+                psCfg->nType = (UINT)value;
+                return JNI_TRUE;
+            case PORT_DATA_BASE:
+                psCfg->dwBase = (DWORD)value;
+                return JNI_TRUE;
+            case PORT_DATA_SIZE:
+                psCfg->dwSize = (DWORD)value;
+                return JNI_TRUE;
+            case PORT_DATA_CHIPS:
+                psCfg->dwChips = (DWORD)value;
+                return JNI_TRUE;
+//            case PORT_DATA_DATA:
+//                psCfg->pbyData = value;
+//                return JNI_TRUE;
+//            case PORT_DATA_FILENAME:
+//                psCfg->szFileName = value;
+//                return JNI_TRUE;
+//            case PORT_DATA_ADDR_OUT:
+//                psCfg->lpszAddrOut = value;
+//                return JNI_TRUE;
+            case PORT_DATA_PORT_OUT:
+                psCfg->wPortOut = (WORD)value;
+                return JNI_TRUE;
+            case PORT_DATA_PORT_IN:
+                psCfg->wPortIn = (WORD)value;
+                return JNI_TRUE;
+//            case PORT_DATA_TCP_ADDR_OUT:
+//                psCfg->psTcp->lpszAddrOut = value;
+//                return JNI_TRUE;
+            case PORT_DATA_TCP_PORT_OUT:
+                psCfg->psTcp->wPortOut = (WORD)value;
+                return JNI_TRUE;
+            case PORT_DATA_TCP_PORT_IN:
+                psCfg->psTcp->wPortIn = (WORD)value;
+                return JNI_TRUE;
+//            case PORT_DATA_NEXT_INDEX:
+//                return currentPortIndex + 1;
+            default:
+                ;
+        }
+    }
+    return JNI_FALSE;
+}
+JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_setPortCfgString(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType, jstring value) {
+    PPORTCFG psCfg = psPortCfg[port];
+    int currentPortIndex = 0;
+    while(currentPortIndex != portIndex && psCfg->pNext) {
+        currentPortIndex++;
+        psCfg = psCfg->pNext;
+    }
+    if(currentPortIndex == portIndex) {
+        const char *valueUTF8 = (*env)->GetStringUTFChars(env, value , NULL) ;
+        _tcscpy(szBufferFilename, valueUTF8);
+
+        switch (portDataType) {
+            case PORT_DATA_FILENAME:
+                _tcsncpy(psCfg->szFileName, valueUTF8, MAX_PATH);
+                return JNI_TRUE;
+            case PORT_DATA_ADDR_OUT:
+                if(psCfg->lpszAddrOut)
+                    free(psCfg->lpszAddrOut);
+                psCfg->lpszAddrOut = malloc(strlen(valueUTF8) + 1);
+                return JNI_TRUE;
+//            case PORT_DATA_TCP_ADDR_OUT: // Readonly!
+//                psCfg->psTcp->lpszAddrOut = value;
+//                return JNI_TRUE;
+            default:
+                ;
+        }
+        (*env)->ReleaseStringUTFChars(env, value, valueUTF8);
+    }
+    return JNI_FALSE;
+}
+JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_setPortCfgBytes(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType, jbyteArray value) {
+    PPORTCFG psCfg = psPortCfg[port];
+    int currentPortIndex = 0;
+    while(currentPortIndex != portIndex && psCfg->pNext) {
+        currentPortIndex++;
+        psCfg = psCfg->pNext;
+    }
+    if(currentPortIndex == portIndex) {
+        switch (portDataType) {
+            case PORT_DATA_DATA: {
+                jsize len = (*env)->GetArrayLength(env, value);
+                jboolean isCopy = JNI_FALSE;
+                jbyte *javaBytes = (*env)->GetByteArrayElements(env, value, &isCopy);
+                if (psCfg->pbyData)
+                    free(psCfg->pbyData);
+                psCfg->pbyData = malloc(len);
+                memcpy(psCfg->pbyData, javaBytes, len);
+                (*env)->ReleaseByteArrayElements(env, value, javaBytes, 0);
+                return JNI_TRUE;
+            }
+            default:
+                ;
+        }
+    }
+    return JNI_FALSE;
+}
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_setPortChanged(JNIEnv *env, jobject thisz, jint port, jint changed) {
+    bChanged[port] = changed;
 }
