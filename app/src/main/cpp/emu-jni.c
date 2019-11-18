@@ -1158,6 +1158,23 @@ enum PORT_DATA_TYPE {
 
 extern PPORTCFG psPortCfg[];
 
+JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getCfgModuleIndex(JNIEnv *env, jobject thisz, jint port) {
+    PPORTCFG psCfg = psPortCfg[port];
+    if(!psCfg)
+        return -1;
+    int currentPortIndex = 0;
+    while(psCfg->pNext) {
+        if (psCfg->bApply == FALSE)		// module not applied
+            break;
+
+        currentPortIndex++;
+        psCfg = psCfg->pNext;
+    }
+
+    return currentPortIndex;
+}
+
+
 JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPortCfgInteger(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType) {
     PPORTCFG psCfg = psPortCfg[port];
     if(!psCfg)

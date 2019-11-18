@@ -70,6 +70,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     //};
 
     public static native void loadCurrPortConfig();
+    public static native int getCfgModuleIndex(int port);
     public static native int getPortCfgInteger(int port, int portIndex, int portDataType);
     public static native String getPortCfgString(int port, int portIndex, int portDataType);
     //public static native char[] getPortCfgData(int port, int portIndex, int portDataType);
@@ -331,6 +332,10 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         editTextFile.setEnabled(false);
         buttonBrowse.setEnabled(false);
+
+
+
+
     }
 
     private boolean ApplyPort(int nPort) {
@@ -338,7 +343,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         boolean bSucc = false;
         int i;
 
-        //TODO psCfg = *CfgModule(nPort);				// module in queue to configure
+        int portIndex = getCfgModuleIndex(nPort);		// module in queue to configure
 
         // module type combobox
         newPortCfgType = spinnerType.getSelectedItemPosition() + 1;
@@ -387,9 +392,9 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 // hard wired address
                 i = spinnerHardAddr.getSelectedItemPosition();
                 if(i == 0)
-                    setPortCfgInteger(nPort, 0, PORT_DATA_BASE, 0x00000);
+                    setPortCfgInteger(nPort, portIndex, PORT_DATA_BASE, 0x00000);
                 else if(i == 1)
-                    setPortCfgInteger(nPort, 0, PORT_DATA_BASE, 0xE0000);
+                    setPortCfgInteger(nPort, portIndex, PORT_DATA_BASE, 0xE0000);
                 // no break;
             case 2: //TYPE_ROM
             case 4: //TYPE_HPIL
@@ -455,8 +460,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         if (bSucc) {
             setPortChanged(nPort, 1);
-            setPortCfgInteger(nPort, 0, PORT_DATA_SIZE, dwChipSize);
-            setPortCfgInteger(nPort, 0, PORT_DATA_APPLY, 1);
+            setPortCfgInteger(nPort, portIndex, PORT_DATA_SIZE, dwChipSize);
+            setPortCfgInteger(nPort, portIndex, PORT_DATA_APPLY, 1);
 
             // set focus on "Add" button
             buttonAdd.requestFocus();
