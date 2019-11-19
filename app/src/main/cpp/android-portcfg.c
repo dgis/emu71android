@@ -91,7 +91,7 @@ static UINT nUnits = 0;						// no. of applied port units in the actual port slo
 /*static*/ BOOL		bChanged[ARRAYSIZEOF(lpszPorts)];
 /*static*/ PPORTCFG psPortCfg[ARRAYSIZEOF(lpszPorts)];
 
-static VOID DelPort(UINT nPort);
+/*static*/ VOID DelPort(UINT nPort);
 static INT_PTR OnEditTcpIpSettings(HWND hDlg,PPORTCFG psCfg);
 
 //################
@@ -112,7 +112,7 @@ static INT_PTR OnEditTcpIpSettings(HWND hDlg,PPORTCFG psCfg);
 //	return (UINT) -1;
 //}
 
-static PPORTCFG *CfgModule(UINT nPort)
+/*static*/ PPORTCFG *CfgModule(UINT nPort)
 {
 	PPORTCFG *ppsCfg;
 
@@ -195,7 +195,7 @@ static PPORTCFG *CfgModule(UINT nPort)
 	return;
 }
 
-static VOID SaveCurrPortConfig(VOID)
+/*static*/ VOID SaveCurrPortConfig(VOID)
 {
 	UINT i,j,nIndex;
 	BOOL bHpil;
@@ -627,7 +627,7 @@ static VOID Cleanup(VOID)
 //	return 0;
 //}
 
-static VOID DelPort(UINT nPort)
+/*static*/ VOID DelPort(UINT nPort)
 {
 	PPORTCFG psCfg,psNext;
 
@@ -645,49 +645,49 @@ static VOID DelPort(UINT nPort)
 	return;
 }
 
-//static VOID DelPortCfg(UINT nPort)
-//{
-//	PPORTCFG *ppsCfg,psNext;
-//
-//	_ASSERT(psPortCfg[nPort] != NULL);
-//	ppsCfg = &psPortCfg[nPort];				// root of module
-//	if (*ppsCfg != NULL)
-//	{
-//		if ((*ppsCfg)->bApply == FALSE)		// 1st module not applied
-//		{
-//			psNext = (*ppsCfg)->pNext;		// pointer to next module
-//
-//			// delete module
-//			if ((*ppsCfg)->lpszAddrOut != NULL)
-//			{
-//				free((*ppsCfg)->lpszAddrOut);
-//			}
-//			free(*ppsCfg);
-//			*ppsCfg = psNext;				// next module is now root
-//			return;
-//		}
-//		while ((*ppsCfg)->pNext != NULL)	// not latest module in queue
-//		{
-//			psNext = (*ppsCfg)->pNext;		// pointer to next module
-//			if (psNext->bApply == FALSE)	// next module not applied
-//			{
-//				// update link to skip delete module
-//				(*ppsCfg)->pNext = (*ppsCfg)->pNext->pNext;
-//
-//				// delete module
-//				if (psNext->lpszAddrOut != NULL)
-//				{
-//					free(psNext->lpszAddrOut);
-//				}
-//				free(psNext);
-//				return;
-//			}
-//			ppsCfg = &(*ppsCfg)->pNext;
-//		}
-//	}
-//	return;
-//}
-//
+/*static*/ VOID DelPortCfg(UINT nPort)
+{
+	PPORTCFG *ppsCfg,psNext;
+
+	_ASSERT(psPortCfg[nPort] != NULL);
+	ppsCfg = &psPortCfg[nPort];				// root of module
+	if (*ppsCfg != NULL)
+	{
+		if ((*ppsCfg)->bApply == FALSE)		// 1st module not applied
+		{
+			psNext = (*ppsCfg)->pNext;		// pointer to next module
+
+			// delete module
+			if ((*ppsCfg)->lpszAddrOut != NULL)
+			{
+				free((*ppsCfg)->lpszAddrOut);
+			}
+			free(*ppsCfg);
+			*ppsCfg = psNext;				// next module is now root
+			return;
+		}
+		while ((*ppsCfg)->pNext != NULL)	// not latest module in queue
+		{
+			psNext = (*ppsCfg)->pNext;		// pointer to next module
+			if (psNext->bApply == FALSE)	// next module not applied
+			{
+				// update link to skip delete module
+				(*ppsCfg)->pNext = (*ppsCfg)->pNext->pNext;
+
+				// delete module
+				if (psNext->lpszAddrOut != NULL)
+				{
+					free(psNext->lpszAddrOut);
+				}
+				free(psNext);
+				return;
+			}
+			ppsCfg = &(*ppsCfg)->pNext;
+		}
+	}
+	return;
+}
+
 //static BOOL ApplyPort(HWND hDlg,UINT nPort)
 //{
 //	PPORTCFG psCfg;

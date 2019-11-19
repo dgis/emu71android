@@ -30,6 +30,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
 
     Spinner spinnerSelPort;
+    boolean spinnerSelPortNoEvent = false;
     ArrayList<String> listItems = new ArrayList<>();
     ArrayAdapter<String> adapterListViewPortData;
     ListView listViewPortData;
@@ -38,7 +39,9 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     Button buttonDelete;
     Button buttonApply;
     Spinner spinnerType;
+    boolean spinnerTypeNoEvent = false;
     Spinner spinnerSize;
+    boolean spinnerSizeNoEvent = false;
     Spinner spinnerChips;
     EditText editTextFile;
     Button buttonBrowse;
@@ -67,10 +70,11 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     public static final int PORT_DATA_TCP_PORT_OUT = 12;
     public static final int PORT_DATA_TCP_PORT_IN = 13;
     public static final int PORT_DATA_NEXT_INDEX = 14;
-    //};
+    public static final int PORT_DATA_EXIST = 15;
 
+    public static native int getPortCfgModuleIndex(int port);
     public static native void loadCurrPortConfig();
-    public static native int getCfgModuleIndex(int port);
+    public static native void saveCurrPortConfig();
     public static native int getPortCfgInteger(int port, int portIndex, int portDataType);
     public static native String getPortCfgString(int port, int portIndex, int portDataType);
     //public static native char[] getPortCfgData(int port, int portIndex, int portDataType);
@@ -78,13 +82,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     public static native boolean setPortCfgString(int port, int portIndex, int portDataType, String value);
     public static native boolean setPortCfgBytes(int port, int portIndex, int portDataType, char[] value);
     public static native void setPortChanged(int port, int changed);
-
-	int newPortCfgType = 1; //TYPE_RAM;
-	int newPortCfgSize  = 32 * 2048;
-	int newPortCfgChips = 1;
-	int newPortCfgBase  = 0x00000;
-	String newPortCfgFileName = "";
-
+    public static native void addNewPort(int port, int nItem);
+    public static native void deletePort(int port, int nItem);
 
     public PortSettingsFragment() {
     }
@@ -123,16 +122,39 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         toolbar.setNavigationOnClickListener(
                 v -> dismiss()
         );
+        toolbar.inflateMenu(R.menu.fragment_port_settings);
+        toolbar.setOnMenuItemClickListener(item -> {
+            if(item.getItemId() == R.id.menu_port_settings_save) {
+                saveCurrPortConfig();
+                dismiss();
+            }
+            return true;
+        });
+        setMenuVisibility(true);
 
         ConstraintLayout constraintLayout = view.findViewById(R.id.constraintLayout);
 
         loadCurrPortConfig();
 
         spinnerSelPort = view.findViewById(R.id.spinnerSelPort);
+        spinnerSelPortNoEvent = true;
         spinnerSelPort.setSelection(1);
         spinnerSelPort.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if(spinnerSelPortNoEvent) {
+                    spinnerSelPortNoEvent = false;
+                    return;
+                }
+
+//                if (psPortCfg[nActPort] != NULL)
+//                {
+//                    if ((*CfgModule(nActPort))->bApply == FALSE)
+//                    {
+//                        // delete the not applied module
+//                        DelPortCfg(nActPort);
+//                    }
+//                }
                 nActPort = position;
                 ShowPortConfig(nActPort);
             }
@@ -155,13 +177,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 //            adapterListViewPortData.add("Hello " + adapterListViewPortData.getCount());
 //            Utils.setListViewHeightBasedOnChildren(listViewPortData);
 
-
-            // default 32KB RAM with 1LQ4 interface chip
-            newPortCfgType = 1; //TYPE_RAM;
-            newPortCfgSize  = 32 * 2048;
-            newPortCfgChips = 1;
-            newPortCfgBase  = 0x00000;
-
+            int nItem = listViewPortData.getSelectedItemPosition();
+            addNewPort(nActPort, nItem);
             OnAddPort(nActPort);
         });
 
@@ -188,11 +205,28 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         });
 
         spinnerType = view.findViewById(R.id.spinnerType);
+        spinnerTypeNoEvent = true;
         spinnerType.setSelection(0);
         spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if(spinnerTypeNoEvent) {
+                    spinnerTypeNoEvent = false;
+                    return;
+                }
+                if(nActPort == -1) return;
 
+                // fetch module in queue to configure
+                int portModuleIndex = getPortCfgModuleIndex(nActPort);
+                if(portModuleIndex == -1) return;
+
+                // module type combobox
+                int type = position + 1;
+                setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_TYPE, type);
+                setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_BASE, type == 3 /*TYPE_HRD*/
+								  ? 0xE0000
+								  : 0x00000);
+                OnAddPort(nActPort);
             }
 
             @Override
@@ -202,7 +236,37 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         });
 
         spinnerSize = view.findViewById(R.id.spinnerSize);
+        spinnerSizeNoEvent = true;
         spinnerSize.setSelection(7);
+        spinnerSize.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if(spinnerSizeNoEvent) {
+                    spinnerSizeNoEvent = false;
+                    return;
+                }
+
+                if(nActPort == -1) return;
+
+                // fetch module in queue to configure
+                int portModuleIndex = getPortCfgModuleIndex(nActPort);
+                if(portModuleIndex == -1) return;
+
+                // fetch combo box selection
+                int size = getChipSizeFromSelectedPosition(position);
+
+                // get new size
+                setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_SIZE, size);
+
+                // reconfigure dialog settings
+                OnAddPort(nActPort);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
 
         spinnerChips = view.findViewById(R.id.spinnerChips);
         spinnerChips.setSelection(0);
@@ -211,7 +275,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         buttonBrowse = view.findViewById(R.id.buttonBrowse);
         buttonBrowse.setOnClickListener(v -> {
-
+            OnBrowse();
         });
 
         spinnerHardAddr = view.findViewById(R.id.spinnerHardAddr);
@@ -219,23 +283,29 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         buttonTCPIP = view.findViewById(R.id.buttonTCPIP);
         buttonTCPIP.setOnClickListener(v -> {
+            if(nActPort == -1) return;
 
+            int portModuleIndex = getPortCfgModuleIndex(nActPort); // module in queue to configure
+            if(portModuleIndex == -1) return;
+
+            // must be a HPIL module
+            int type = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_TYPE);
+            if(type == 4 /*TYPE_HPIL*/)
+                OnEditTcpIpSettings(portModuleIndex);
         });
 
         return view;
     }
 
-    private boolean ShowPortConfig(int nActPort) {
-        spinnerType.setSelection(0);
-        spinnerSize.setSelection(0);
-        spinnerChips.setSelection(0);
-        spinnerHardAddr.setSelection(0);
+    private boolean ShowPortConfig(int port) {
 
+        // clear configuration input fields
+        editTextFile.setText("");
+
+        // enable configuration list box
         listViewPortData.setEnabled(true);
-        listItems.clear();
-        adapterListViewPortData.notifyDataSetChanged();
-        Utils.setListViewHeightBasedOnChildren(listViewPortData);
 
+        // button control
         buttonAdd.setEnabled(true);
         buttonDelete.setEnabled(true); //TODO
         buttonApply.setEnabled(false);
@@ -246,36 +316,41 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         buttonBrowse.setEnabled(false);
         spinnerHardAddr.setEnabled(false);
 
+        // fill the list box with the current data
+        listItems.clear();
+        adapterListViewPortData.notifyDataSetChanged();
+        Utils.setListViewHeightBasedOnChildren(listViewPortData);
+
         int portIndex = 0;
-        int logicalIndex = getPortCfgInteger(nActPort, portIndex, PORT_DATA_INDEX);
-        if(logicalIndex >= 0) {
+        int exist = getPortCfgInteger(port, portIndex, PORT_DATA_EXIST);
+        if(exist > 0) {
 
             do {
                 String buffer = "";
 
                 // module type
                 String[] modType = getResources().getStringArray(R.array.port_configuration_mod_type);
-                int type = getPortCfgInteger(nActPort, portIndex, PORT_DATA_TYPE);
+                int type = getPortCfgInteger(port, portIndex, PORT_DATA_TYPE);
                 buffer += type > 0 && type <= modType.length ? modType[type - 1] : "UNKNOWN";
 
                 buffer += ", ";
 
                 // hard wired address
                 if (type == 3) { //TYPE_HRD
-                    int base = getPortCfgInteger(nActPort, portIndex, PORT_DATA_BASE);
+                    int base = getPortCfgInteger(port, portIndex, PORT_DATA_BASE);
                     buffer += String.format("%05X, ", base);
                 }
 
                 // size + no. of chips
-                int nIndex = getPortCfgInteger(nActPort, portIndex, PORT_DATA_SIZE) / 2048;
-                int chips = getPortCfgInteger(nActPort, portIndex, PORT_DATA_CHIPS);
+                int nIndex = getPortCfgInteger(port, portIndex, PORT_DATA_SIZE) / 2048;
+                int chips = getPortCfgInteger(port, portIndex, PORT_DATA_CHIPS);
                 if (nIndex == 0)
                     buffer += String.format(Locale.US, "512B (%d)", chips);
                 else
                     buffer += String.format(Locale.US, "%dK (%d)", nIndex, chips);
 
                 // filename
-                String fileName = getPortCfgString(nActPort, portIndex, PORT_DATA_FILENAME);
+                String fileName = getPortCfgString(port, portIndex, PORT_DATA_FILENAME);
                 if (fileName != null && fileName.length() > 0) { // given filename
                     buffer += ", 0\"";
                     int fileNameLength = fileName.length();
@@ -285,9 +360,9 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
                 // tcp/ip configuration
                 if (type == 4) { //TYPE_HPIL
-                    String lpszAddrOut = getPortCfgString(nActPort, portIndex, PORT_DATA_ADDR_OUT);
-                    int wPortOut = getPortCfgInteger(nActPort, portIndex, PORT_DATA_PORT_OUT);
-                    int wPortIn = getPortCfgInteger(nActPort, portIndex, PORT_DATA_PORT_IN);
+                    String lpszAddrOut = getPortCfgString(port, portIndex, PORT_DATA_ADDR_OUT);
+                    int wPortOut = getPortCfgInteger(port, portIndex, PORT_DATA_PORT_OUT);
+                    int wPortIn = getPortCfgInteger(port, portIndex, PORT_DATA_PORT_IN);
                     buffer += String.format(Locale.US, ", \"%s\", %d, %d", lpszAddrOut, wPortOut, wPortIn);
                     ++nUnits;                        // HPIL needs two entries (HPIL mailbox & ROM)
                 }
@@ -295,13 +370,20 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 adapterListViewPortData.add(buffer);
                 Utils.setListViewHeightBasedOnChildren(listViewPortData);
 
-                portIndex = getPortCfgInteger(nActPort, portIndex, PORT_DATA_NEXT_INDEX);
-            } while (portIndex > 0);
+                exist = getPortCfgInteger(port, ++portIndex, PORT_DATA_EXIST);
+            } while (exist > 0);
         }
         return true;
     }
 
     private void OnAddPort(int nActPort) {
+
+        // module in queue to configure
+        int portModuleIndex = getPortCfgModuleIndex(nActPort);
+
+        setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_APPLY, 0); // module not applied
+
+
         // disable configuration list box
         listViewPortData.setEnabled(false);
 
@@ -314,66 +396,102 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         //SetDlgItemText(hDlg,IDC_CFG_DEL,_T("A&bort"));
 
         // module type combobox
+        int type = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_TYPE);
+        spinnerTypeNoEvent = true;
+        spinnerType.setSelection(type - 1);
         spinnerType.setEnabled(true);
-        spinnerType.setSelection(0);
 
         // size combobox
-        spinnerSize.setEnabled(true);
-        spinnerSize.setSelection(0);
+        int sizeIndex = 0;
+        if (type == 1 /*TYPE_RAM*/) {
+            int size = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_SIZE);
+            if(size == 0) sizeIndex = 0; // Datafile
+            else if(size == 1024) sizeIndex = 1; // 512 Byte
+            else if(size == 1 * 2048) sizeIndex = 2; // 1K Byte
+            else if(size == 2 * 2048) sizeIndex = 3; // 2K Byte
+            else if(size == 4 * 2048) sizeIndex = 4; // 4K Byte
+            else if(size == 8 * 2048) sizeIndex = 5; // 8K Byte
+            else if(size == 16 * 2048) sizeIndex = 6; // 16K Byte
+            else if(size == 32 * 2048) sizeIndex = 7; // 32K Byte
+            else if(size == 64 * 2048) sizeIndex = 8; // 64K Byte
+            else if(size == 96 * 2048) sizeIndex = 9; // 96K Byte
+            else if(size == 128 * 2048) sizeIndex = 10; // 128K Byte
+            else if(size == 160 * 2048) sizeIndex = 11; // 160K Byte
+            else if(size == 192 * 2048) sizeIndex = 12; // 192K Byte
+            spinnerSizeNoEvent = true;
+            spinnerSize.setSelection(sizeIndex);
+            spinnerSize.setEnabled(true);
+        } else
+            spinnerSize.setEnabled(false);
 
         // no. of chips combobox
+        spinnerChips.setSelection(0); // select "Auto"
         spinnerChips.setEnabled(true);
-        spinnerChips.setSelection(0);
+
+        // enable filename when not RAM or RAM size = 0 selected
+        boolean bFilename = type != 1 /*TYPE_RAM*/
+                || sizeIndex == 0;
+        if(!bFilename) // RAM with given size
+            setPortCfgString(nActPort, portModuleIndex, PORT_DATA_FILENAME, ""); // no filename
+        String filename = getPortCfgString(nActPort, portModuleIndex, PORT_DATA_FILENAME);
+        editTextFile.setText(filename);
+        editTextFile.setEnabled(bFilename);
+        buttonBrowse.setEnabled(bFilename);
 
         // hpil interface or hard wired address
-        spinnerHardAddr.setEnabled(false);
-        spinnerHardAddr.setSelection(0);
+        if (type == 4 /*TYPE_HPIL*/) { // HPIL interface
 
+            spinnerHardAddr.setEnabled(false);
 
-        editTextFile.setEnabled(false);
-        buttonBrowse.setEnabled(false);
+            String addrOut = getPortCfgString(nActPort, portModuleIndex, PORT_DATA_ADDR_OUT);
+            if (addrOut != null) { // first call
+                // init tpc/ip settings with default values
+                setPortCfgString(nActPort, portModuleIndex, PORT_DATA_ADDR_OUT, "localhost");
+                setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_OUT, 60001);
+                setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_IN, 60000);
+            }
 
+            // activate configuration button
+            buttonTCPIP.setEnabled(true);
+        } else { // default
 
+            // deactivate configuration button
+            buttonTCPIP.setEnabled(false);
 
-
+            if (type == 3 /*TYPE_HRD*/) { // hard wired chip
+                int nIndex = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_BASE);
+                spinnerHardAddr.setSelection(nIndex);
+                spinnerHardAddr.setEnabled(true);
+            }
+            else
+                spinnerHardAddr.setEnabled(false);
+        }
     }
 
     private boolean ApplyPort(int nPort) {
-        int dwChipSize = 0;
-        boolean bSucc = false;
-        int i;
 
-        int portIndex = getCfgModuleIndex(nPort);		// module in queue to configure
+        int portModuleIndex = getPortCfgModuleIndex(nPort); // module in queue to configure
 
         // module type combobox
-        newPortCfgType = spinnerType.getSelectedItemPosition() + 1;
+        int type = spinnerType.getSelectedItemPosition() + 1;
+        setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_TYPE, type);
 
         // hard wired address
-        newPortCfgBase = 0x00000;
+        setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_BASE, 0x00000);
 
         // filename
-        newPortCfgFileName = editTextFile.getText().toString();
+        String portCfgFileName = editTextFile.getText().toString();
+        setPortCfgString(nPort, portModuleIndex, PORT_DATA_FILENAME, portCfgFileName);
 
-        switch (newPortCfgType) {
+        boolean bSucc = false;
+        int dwChipSize = 0;
+        int i;
+        switch (type) {
             case 1: //TYPE_RAM
-                if (newPortCfgFileName.length() == 0) {		// empty filename field
+                if (portCfgFileName.length() == 0) { // empty filename field
                     // size combobox
                     i = spinnerSize.getSelectedItemPosition();
-                    switch (i) {
-                        case 0: dwChipSize = 0; break; // Datafile
-                        case 1: dwChipSize = 1024; break; // 512 Byte
-                        case 2: dwChipSize = 1 * 2048; break; // 1K Byte
-                        case 3: dwChipSize = 2 * 2048; break; // 2K Byte
-                        case 4: dwChipSize = 4 * 2048; break; // 4K Byte
-                        case 5: dwChipSize = 8 * 2048; break; // 8K Byte
-                        case 6: dwChipSize = 16 * 2048; break; // 16K Byte
-                        case 7: dwChipSize = 32 * 2048; break; // 32K Byte
-                        case 8: dwChipSize = 64 * 2048; break; // 64K Byte
-                        case 9: dwChipSize = 96 * 2048; break; // 96K Byte
-                        case 10: dwChipSize = 128 * 2048; break; // 128K Byte
-                        case 11: dwChipSize = 160 * 2048; break; // 160K Byte
-                        case 12: dwChipSize = 192 * 2048; break; // 192K Byte
-                    }
+                    dwChipSize = getChipSizeFromSelectedPosition(i);
                     bSucc = (dwChipSize != 0);
                 } else {								// given filename
 //TODO
@@ -392,9 +510,9 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 // hard wired address
                 i = spinnerHardAddr.getSelectedItemPosition();
                 if(i == 0)
-                    setPortCfgInteger(nPort, portIndex, PORT_DATA_BASE, 0x00000);
+                    setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_BASE, 0x00000);
                 else if(i == 1)
-                    setPortCfgInteger(nPort, portIndex, PORT_DATA_BASE, 0xE0000);
+                    setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_BASE, 0xE0000);
                 // no break;
             case 2: //TYPE_ROM
             case 4: //TYPE_HPIL
@@ -412,18 +530,18 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         //  i = 0;								// no one selected, choose "Auto"
         i = spinnerChips.getSelectedItemPosition();
 
-        if (bSucc && i == 0) {					// "Auto"
+        if (bSucc && i == 0) { // "Auto"
             int dwSize;
 
-            switch (newPortCfgType)
+            switch (type)
             {
                 case 1: //TYPE_RAM
                     // can be build out of 32KB chips
                     dwSize = ((dwChipSize % (32 * 2048)) == 0)
-                            ? (32 * 2048)			// use 32KB chips
-                            : ( 1 * 2048);			// use 1KB chips
+                            ? (32 * 2048) // use 32KB chips
+                            : ( 1 * 2048); // use 1KB chips
 
-                    if (dwChipSize < dwSize)		// 512 Byte Memory
+                    if (dwChipSize < dwSize) // 512 Byte Memory
                         dwSize = dwChipSize;
                     break;
                 case 3: //TYPE_HRD
@@ -431,41 +549,68 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 case 4: //TYPE_HPIL
                     // can be build out of 16KB chips
                     dwSize = ((dwChipSize % (16 * 2048)) == 0)
-                            ? (16 * 2048)			// use 16KB chips
-                            : dwChipSize;			// use a single chip
+                            ? (16 * 2048) // use 16KB chips
+                            : dwChipSize; // use a single chip
                     break;
                 default:
                     dwSize = 1;
             }
 
-            i = dwChipSize / dwSize;			// calculate no. of chips
+            i = dwChipSize / dwSize; // calculate no. of chips
         }
 
-        newPortCfgChips = i;						// set no. of chips
+        int chips = i; // set no. of chips
+        setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_CHIPS, chips);
 
-        if (bSucc) {								// check size vs. no. of chips
+        if (bSucc) { // check size vs. no. of chips
             int dwSingleSize;
 
             // check if the overall size is a multiple of a chip size
-            bSucc = (dwChipSize % newPortCfgChips) == 0;
+            bSucc = (dwChipSize % chips) == 0;
 
             // check if the single chip has a power of 2 size
-            dwSingleSize = dwChipSize / newPortCfgChips;
+            dwSingleSize = dwChipSize / chips;
             bSucc = bSucc && dwSingleSize != 0 && (dwSingleSize & (dwSingleSize - 1)) == 0;
 
             if (!bSucc)
-//TODO
                 Utils.showAlert(getContext(), "Number of chips don't fit to the overall size!");
         }
 
         if (bSucc) {
             setPortChanged(nPort, 1);
-            setPortCfgInteger(nPort, portIndex, PORT_DATA_SIZE, dwChipSize);
-            setPortCfgInteger(nPort, portIndex, PORT_DATA_APPLY, 1);
+            setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_SIZE, dwChipSize);
+            setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_APPLY, 1);
 
             // set focus on "Add" button
             buttonAdd.requestFocus();
         }
         return bSucc;
     }
+
+    private int getChipSizeFromSelectedPosition(int position) {
+        switch (position) {
+            case 0: return 0; // Datafile
+            case 1: return 1024; // 512 Byte
+            case 2: return 1 * 2048; // 1K Byte
+            case 3: return 2 * 2048; // 2K Byte
+            case 4: return 4 * 2048; // 4K Byte
+            case 5: return 8 * 2048; // 8K Byte
+            case 6: return 16 * 2048; // 16K Byte
+            case 7: return 32 * 2048; // 32K Byte
+            case 8: return 64 * 2048; // 64K Byte
+            case 9: return 96 * 2048; // 96K Byte
+            case 10: return 128 * 2048; // 128K Byte
+            case 11: return 160 * 2048; // 160K Byte
+            case 12: return 192 * 2048; // 192K Byte
+        }
+        return 0;
+    }
+
+    private void OnBrowse() {
+
+    }
+
+    private void OnEditTcpIpSettings(int portModuleIndex) {
+    }
+
 }

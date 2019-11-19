@@ -65,6 +65,8 @@
     <string name="menu_printer_simulator_share_graphic">Share Graphic</string>
     <string name="menu_printer_simulator_change_paper">Change Paper (Erase)</string>
 
+    <string name="menu_port_settings_save">Save</string>
+
     <string name="dialog_port_configuration_title">Port Configuration</string>
     <string name="button_port_configuration_add">Add</string>
     <string name="button_port_configuration_abort">Abort</string>

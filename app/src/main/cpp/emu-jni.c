@@ -1138,6 +1138,14 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_loadCu
     LoadCurrPortConfig();
 }
 
+JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_saveCurrPortConfig(JNIEnv *env, jobject thisz) {
+    SaveCurrPortConfig();
+}
+
+
+
+
+
 enum PORT_DATA_TYPE {
     PORT_DATA_INDEX = 0,
     PORT_DATA_APPLY,
@@ -1153,12 +1161,16 @@ enum PORT_DATA_TYPE {
     PORT_DATA_TCP_ADDR_OUT,
     PORT_DATA_TCP_PORT_OUT,
     PORT_DATA_TCP_PORT_IN,
-    PORT_DATA_NEXT_INDEX
+    PORT_DATA_NEXT_INDEX,
+    PORT_DATA_EXIST
 };
 
 extern PPORTCFG psPortCfg[];
+PPORTCFG *CfgModule(UINT nPort);
+VOID DelPort(UINT nPort);
+VOID DelPortCfg(UINT nPort);
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getCfgModuleIndex(JNIEnv *env, jobject thisz, jint port) {
+JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPortCfgModuleIndex(JNIEnv *env, jobject thisz, jint port) {
     PPORTCFG psCfg = psPortCfg[port];
     if(!psCfg)
         return -1;
@@ -1166,14 +1178,11 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getCfg
     while(psCfg->pNext) {
         if (psCfg->bApply == FALSE)		// module not applied
             break;
-
         currentPortIndex++;
         psCfg = psCfg->pNext;
     }
-
     return currentPortIndex;
 }
-
 
 JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPortCfgInteger(JNIEnv *env, jobject thisz, jint port, jint portIndex, jint portDataType) {
     PPORTCFG psCfg = psPortCfg[port];
@@ -1214,6 +1223,8 @@ JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPor
                     return currentPortIndex + 1;
                 else
                     return -1;
+            case PORT_DATA_EXIST:
+                return TRUE;
             default:
                 ;
         }
@@ -1242,7 +1253,7 @@ JNIEXPORT jstring JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_get
         }
     }
 
-    return -1;
+    return NULL;
 }
 
 
@@ -1364,4 +1375,89 @@ JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_se
 }
 JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_setPortChanged(JNIEnv *env, jobject thisz, jint port, jint changed) {
     bChanged[port] = changed;
+}
+
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_addNewPort(JNIEnv *env, jobject thisz, jint nActPort, jint nItem) {
+    PPORTCFG *ppsCfg;
+    ppsCfg = &psPortCfg[nActPort];	// root of module
+    {
+        INT nItem,nIndex;
+
+        // something selected
+        if (nItem != -1)
+        {
+            PPORTCFG psCfgIns;
+
+            // goto selected entry in the queue
+            for (nIndex = 0; nIndex < nItem && *ppsCfg != NULL; ++nIndex)
+            {
+                ppsCfg = &(*ppsCfg)->pNext;
+            }
+
+            // allocate memory for new module definition and insert it at position
+            psCfgIns = (PPORTCFG) calloc(1,sizeof(*psPortCfg[0]));
+            psCfgIns->pNext = *ppsCfg;
+            *ppsCfg = psCfgIns;
+        }
+        else						// nothing selected
+        {
+            // goto last entry in the queue
+            while (*ppsCfg != NULL)
+            {
+                ppsCfg = &(*ppsCfg)->pNext;
+            }
+
+            // allocate memory for new module definition and add it at last position
+            *ppsCfg = (PPORTCFG) calloc(1,sizeof(*psPortCfg[0]));
+        }
+
+        // new module
+        (*ppsCfg)->nIndex = (UINT) -1;
+    }
+
+    // default 32KB RAM with 1LQ4 interface chip
+    (*ppsCfg)->nType   = TYPE_RAM;
+    (*ppsCfg)->dwSize  = 32 * 2048;
+    (*ppsCfg)->dwChips = 1;
+    (*ppsCfg)->dwBase  = 0x00000;
+}
+
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_deletePort(JNIEnv *env, jobject thisz, jint nActPort, jint nItem) {
+    PPORTCFG *ppsCfg;
+    // if a module is not applied the button is working in the "Abort" context
+    if ((*CfgModule(nActPort))->bApply == FALSE)
+    {
+        DelPortCfg(nActPort);		// delete the not applied module
+    }
+    else							// "Delete" context
+    {
+        INT nItem,nIndex;
+
+        _ASSERT(nActPort < ARRAYSIZEOF(bChanged));
+        bChanged[nActPort] = TRUE;
+
+        // something selected
+        if (nItem != -1)
+        {
+            // root of module
+            ppsCfg = &psPortCfg[nActPort];
+
+            // goto selected entry in the queue
+            for (nIndex = 0; nIndex < nItem && *ppsCfg != NULL; ++nIndex)
+            {
+                ppsCfg = &(*ppsCfg)->pNext;
+            }
+
+            if (*ppsCfg != NULL)
+            {
+                // mark entry as not applied that DelPortCfg() can delete it
+                (*ppsCfg)->bApply = FALSE;
+                DelPortCfg(nActPort); // delete the not applied module
+            }
+        }
+        else						// nothing selected
+        {
+            DelPort(nActPort);		// delete port data
+        }
+    }
 }
