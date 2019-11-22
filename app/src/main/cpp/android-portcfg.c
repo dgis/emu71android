@@ -369,7 +369,7 @@ static INT_PTR OnEditTcpIpSettings(HWND hDlg,PPORTCFG psCfg);
 	return;
 }
 
-static VOID Cleanup(VOID)
+/*static*/ VOID Cleanup(VOID)
 {
 	UINT i;
 

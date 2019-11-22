@@ -154,5 +154,9 @@
     <string name="settings_category_macro_title">Macro</string>
     <string name="settings_macro_real_speed_title">Use Real Replay Speed</string>
     <string name="settings_macro_manual_speed_title">Manual Replay Speed</string>
+    <string name="contextual_menu_port_settings_delete">Delete Module</string>
+    <string name="contextual_menu_port_settings_data_load">Load Memory Data...</string>
+    <string name="contextual_menu_port_settings_data_save">Save Memory Data...</string>
+    <string name="contextual_menu_port_settings_tcpip_settings">Change TCP/IP Settings...</string>
 
 </resources>

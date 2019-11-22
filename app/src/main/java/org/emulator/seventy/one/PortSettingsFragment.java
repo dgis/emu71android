@@ -1,8 +1,11 @@
 package org.emulator.seventy.one;
 
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -12,8 +15,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -22,6 +27,7 @@ import org.emulator.calculator.Utils;
 
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Objects;
 
 
 public class PortSettingsFragment extends AppCompatDialogFragment {
@@ -29,24 +35,24 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     private boolean debug = false;
 
 
-    Spinner spinnerSelPort;
-    boolean spinnerSelPortNoEvent = false;
-    ArrayList<String> listItems = new ArrayList<>();
-    ArrayAdapter<String> adapterListViewPortData;
-    ListView listViewPortData;
-    Button buttonAdd;
-    Button buttonAbort;
-    Button buttonDelete;
-    Button buttonApply;
-    Spinner spinnerType;
-    boolean spinnerTypeNoEvent = false;
-    Spinner spinnerSize;
-    boolean spinnerSizeNoEvent = false;
-    Spinner spinnerChips;
-    EditText editTextFile;
-    Button buttonBrowse;
-    Spinner spinnerHardAddr;
-    Button buttonTCPIP;
+    private Spinner spinnerSelPort;
+    private boolean spinnerSelPortNoEvent = false;
+    private ArrayList<String> listItems = new ArrayList<>();
+    private ArrayAdapter<String> adapterListViewPortData;
+    private ListView listViewPortData;
+    private Button buttonAdd;
+    private Button buttonAbort;
+    private Button buttonDelete;
+    private Button buttonApply;
+    private Spinner spinnerType;
+    private boolean spinnerTypeNoEvent = false;
+    private Spinner spinnerSize;
+    private boolean spinnerSizeNoEvent = false;
+    private Spinner spinnerChips;
+    private EditText editTextFile;
+    private Button buttonBrowse;
+    private Spinner spinnerHardAddr;
+    private Button buttonTCPIP;
 
 
     private int nActPort = 0;					// the actual port
@@ -55,26 +61,31 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
 
     //enum PORT_DATA_TYPE {
-    public static final int PORT_DATA_INDEX = 0;
-    public static final int PORT_DATA_APPLY = 1;
-    public static final int PORT_DATA_TYPE = 2;
-    public static final int PORT_DATA_BASE = 3;
-    public static final int PORT_DATA_SIZE = 4;
-    public static final int PORT_DATA_CHIPS = 5;
-    public static final int PORT_DATA_DATA = 6;
-    public static final int PORT_DATA_FILENAME = 7;
-    public static final int PORT_DATA_ADDR_OUT = 8;
-    public static final int PORT_DATA_PORT_OUT = 9;
-    public static final int PORT_DATA_PORT_IN = 10;
-    public static final int PORT_DATA_TCP_ADDR_OUT = 11;
-    public static final int PORT_DATA_TCP_PORT_OUT = 12;
-    public static final int PORT_DATA_TCP_PORT_IN = 13;
-    public static final int PORT_DATA_NEXT_INDEX = 14;
-    public static final int PORT_DATA_EXIST = 15;
+    private static final int PORT_DATA_INDEX = 0;
+    private static final int PORT_DATA_APPLY = 1;
+    private static final int PORT_DATA_TYPE = 2;
+    private static final int PORT_DATA_BASE = 3;
+    private static final int PORT_DATA_SIZE = 4;
+    private static final int PORT_DATA_CHIPS = 5;
+    private static final int PORT_DATA_DATA = 6;
+    private static final int PORT_DATA_FILENAME = 7;
+    private static final int PORT_DATA_ADDR_OUT = 8;
+    private static final int PORT_DATA_PORT_OUT = 9;
+    private static final int PORT_DATA_PORT_IN = 10;
+    private static final int PORT_DATA_TCP_ADDR_OUT = 11;
+    private static final int PORT_DATA_TCP_PORT_OUT = 12;
+    private static final int PORT_DATA_TCP_PORT_IN = 13;
+    private static final int PORT_DATA_NEXT_INDEX = 14;
+    private static final int PORT_DATA_EXIST = 15;
+    private int nOldState;
+    private boolean isDismiss;
 
+    public static native int editPortConfigStart();
+    public static native void editPortConfigEnd(int nOldState);
     public static native int getPortCfgModuleIndex(int port);
     public static native void loadCurrPortConfig();
     public static native void saveCurrPortConfig();
+    public static native void cleanup();
     public static native int getPortCfgInteger(int port, int portIndex, int portDataType);
     public static native String getPortCfgString(int port, int portIndex, int portDataType);
     //public static native char[] getPortCfgData(int port, int portIndex, int portDataType);
@@ -83,7 +94,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     public static native boolean setPortCfgBytes(int port, int portIndex, int portDataType, char[] value);
     public static native void setPortChanged(int port, int changed);
     public static native void addNewPort(int port, int nItem);
-    public static native void deletePort(int port, int nItem);
+    public static native void configModuleAbort(int nActPort);
+    public static native void configModuleDelete(int nActPort, int nItemSelectedModule);
 
     public PortSettingsFragment() {
     }
@@ -116,12 +128,16 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_port_settings, container, false);
 
+        isDismiss = false;
+        nOldState = editPortConfigStart();
+
+
         Toolbar toolbar = view.findViewById(R.id.my_toolbar);
         toolbar.setTitle(title);
         toolbar.setNavigationIcon(R.drawable.ic_keyboard_backspace_white_24dp);
-        toolbar.setNavigationOnClickListener(
-                v -> dismiss()
-        );
+        toolbar.setNavigationOnClickListener(v -> {
+            dismiss();
+        });
         toolbar.inflateMenu(R.menu.fragment_port_settings);
         toolbar.setOnMenuItemClickListener(item -> {
             if(item.getItemId() == R.id.menu_port_settings_save) {
@@ -132,12 +148,13 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         });
         setMenuVisibility(true);
 
-        ConstraintLayout constraintLayout = view.findViewById(R.id.constraintLayout);
 
+
+        // load current port data structure
         loadCurrPortConfig();
 
+        // init port combo box
         spinnerSelPort = view.findViewById(R.id.spinnerSelPort);
-        spinnerSelPortNoEvent = true;
         spinnerSelPort.setSelection(1);
         spinnerSelPort.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -165,18 +182,16 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             }
         });
 
-        adapterListViewPortData = new ArrayAdapter<>(getContext(), R.layout.simple_list_item_1, listItems);
+        adapterListViewPortData = new ArrayAdapter<>(Objects.requireNonNull(getContext()), R.layout.simple_list_item_1, listItems);
         listViewPortData = view.findViewById(R.id.listViewPortData);
         listViewPortData.setAdapter(adapterListViewPortData);
-        listViewPortData.setOnItemClickListener((parent, view1, position, id) -> {
-
-        });
+//        listViewPortData.setOnItemClickListener((parent, view1, position, id) -> {
+//
+//        });
+        registerForContextMenu(listViewPortData);
 
         buttonAdd = view.findViewById(R.id.buttonAdd);
         buttonAdd.setOnClickListener(v -> {
-//            adapterListViewPortData.add("Hello " + adapterListViewPortData.getCount());
-//            Utils.setListViewHeightBasedOnChildren(listViewPortData);
-
             int nItem = listViewPortData.getSelectedItemPosition();
             addNewPort(nActPort, nItem);
             OnAddPort(nActPort);
@@ -184,20 +199,27 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         buttonAbort = view.findViewById(R.id.buttonAbort);
         buttonAbort.setOnClickListener(v -> {
+            int portModuleIndex = getPortCfgModuleIndex(nActPort);
+            if(portModuleIndex != -1) {
+                int bApply = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_APPLY);
+                if(bApply == 0 /*FALSE*/)
+                    configModuleAbort(nActPort);
+            }
 
+            ShowPortConfig(nActPort);
         });
 
         buttonDelete = view.findViewById(R.id.buttonDelete);
         buttonDelete.setOnClickListener(v -> {
-//            listItems.remove(0);
-//            adapterListViewPortData.notifyDataSetChanged();
-//            Utils.setListViewHeightBasedOnChildren(listViewPortData);
+            int nItem = listViewPortData.getSelectedItemPosition();
+            configModuleDelete(nActPort, nItem);
+            ShowPortConfig(nActPort);
         });
 
         buttonApply = view.findViewById(R.id.buttonApply);
         buttonApply.setOnClickListener(v -> {
             // apply port data
-            if (ApplyPort(nActPort) == false) {
+            if (!ApplyPort(nActPort)) {
                 OnAddPort(nActPort);
                 return;
             }
@@ -274,9 +296,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         editTextFile = view.findViewById(R.id.editTextFile);
 
         buttonBrowse = view.findViewById(R.id.buttonBrowse);
-        buttonBrowse.setOnClickListener(v -> {
-            OnBrowse();
-        });
+        buttonBrowse.setOnClickListener(v -> OnBrowse());
 
         spinnerHardAddr = view.findViewById(R.id.spinnerHardAddr);
         spinnerHardAddr.setSelection(1);
@@ -297,7 +317,64 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         return view;
     }
 
-    private boolean ShowPortConfig(int port) {
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        if(!isDismiss) {
+            this.isDismiss = true;
+            cleanup();
+            editPortConfigEnd(nOldState);
+        }
+        super.onDismiss(dialog);
+    }
+
+    @Override
+    public void onCreateContextMenu(@NonNull ContextMenu menu, @NonNull View v, @Nullable ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        if (v.getId() == R.id.listViewPortData) {
+            Objects.requireNonNull(getActivity()).getMenuInflater().inflate(R.menu.fragment_port_settings_contextual_menu, menu);
+            for (int i = 0, n = menu.size(); i < n; i++) {
+                MenuItem item = menu.getItem(i);
+                AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+                int nItem = info.position;
+
+                int id = item.getItemId();
+                if (id == R.id.contextual_menu_port_settings_delete) {
+                } else  if (id == R.id.contextual_menu_port_settings_data_load) {
+                } else  if (id == R.id.contextual_menu_port_settings_data_save) {
+                } else  if (id == R.id.contextual_menu_port_settings_tcpip_settings) {
+                }
+            }
+        }
+
+        MenuItem.OnMenuItemClickListener listener = item -> {
+            onContextItemSelected(item);
+            return true;
+        };
+
+        for (int i = 0, n = menu.size(); i < n; i++)
+            menu.getItem(i).setOnMenuItemClickListener(listener);
+    }
+
+    @Override
+    public boolean onContextItemSelected(@NonNull MenuItem item) {
+        AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        int nItem = info.position;
+        switch(item.getItemId()) {
+            case R.id.contextual_menu_port_settings_delete:
+                configModuleDelete(nActPort, nItem);
+                ShowPortConfig(nActPort);
+                return true;
+            case R.id.contextual_menu_port_settings_data_load:
+                break;
+            case R.id.contextual_menu_port_settings_data_save:
+                break;
+            case R.id.contextual_menu_port_settings_tcpip_settings:
+                break;
+        }
+        return super.onContextItemSelected(item);
+    }
+
+    private void ShowPortConfig(int port) {
 
         // clear configuration input fields
         editTextFile.setText("");
@@ -373,7 +450,6 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 exist = getPortCfgInteger(port, ++portIndex, PORT_DATA_EXIST);
             } while (exist > 0);
         }
-        return true;
     }
 
     private void OnAddPort(int nActPort) {
@@ -402,12 +478,11 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         spinnerType.setEnabled(true);
 
         // size combobox
-        int sizeIndex = 0;
+        int sizeIndex = 0; // Datafile
         if (type == 1 /*TYPE_RAM*/) {
             int size = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_SIZE);
-            if(size == 0) sizeIndex = 0; // Datafile
-            else if(size == 1024) sizeIndex = 1; // 512 Byte
-            else if(size == 1 * 2048) sizeIndex = 2; // 1K Byte
+                 if(size == 1024) sizeIndex = 1; // 512 Byte
+            else if(size ==     2048) sizeIndex = 2; // 1K Byte
             else if(size == 2 * 2048) sizeIndex = 3; // 2K Byte
             else if(size == 4 * 2048) sizeIndex = 4; // 4K Byte
             else if(size == 8 * 2048) sizeIndex = 5; // 8K Byte
@@ -518,7 +593,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             case 4: //TYPE_HPIL
                 // filename
 //TODO
-//                bSucc = MapFile(psCfg->szFileName,NULL,&dwChipSize);
+                bSucc = true; //MapFile(psCfg->szFileName,NULL,&dwChipSize);
                 break;
             default:
                 dwChipSize = 0;
@@ -539,7 +614,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                     // can be build out of 32KB chips
                     dwSize = ((dwChipSize % (32 * 2048)) == 0)
                             ? (32 * 2048) // use 32KB chips
-                            : ( 1 * 2048); // use 1KB chips
+                            : (     2048); // use 1KB chips
 
                     if (dwChipSize < dwSize) // 512 Byte Memory
                         dwSize = dwChipSize;
@@ -591,7 +666,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         switch (position) {
             case 0: return 0; // Datafile
             case 1: return 1024; // 512 Byte
-            case 2: return 1 * 2048; // 1K Byte
+            case 2: return     2048; // 1K Byte
             case 3: return 2 * 2048; // 2K Byte
             case 4: return 4 * 2048; // 4K Byte
             case 5: return 8 * 2048; // 8K Byte

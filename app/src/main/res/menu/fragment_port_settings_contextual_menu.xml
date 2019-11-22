@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/contextual_menu_port_settings_delete"
+        android:title="@string/contextual_menu_port_settings_delete" />
+
+    <item
+        android:id="@+id/contextual_menu_port_settings_data_load"
+        android:title="@string/contextual_menu_port_settings_data_load" />
+
+    <item
+        android:id="@+id/contextual_menu_port_settings_data_save"
+        android:title="@string/contextual_menu_port_settings_data_save" />
+
+    <item
+        android:id="@+id/contextual_menu_port_settings_tcpip_settings"
+        android:title="@string/contextual_menu_port_settings_tcpip_settings" />
+
+</menu>

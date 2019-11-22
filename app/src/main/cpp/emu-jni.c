@@ -1134,14 +1134,17 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeight(JN
 }
 
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_loadCurrPortConfig(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_loadCurrPortConfig(JNIEnv *env, jobject thisz) {
     LoadCurrPortConfig();
 }
 
-JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_saveCurrPortConfig(JNIEnv *env, jobject thisz) {
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_saveCurrPortConfig(JNIEnv *env, jobject thisz) {
     SaveCurrPortConfig();
 }
 
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_cleanup(JNIEnv *env, jobject thisz) {
+    Cleanup();
+}
 
 
 
@@ -1169,6 +1172,19 @@ extern PPORTCFG psPortCfg[];
 PPORTCFG *CfgModule(UINT nPort);
 VOID DelPort(UINT nPort);
 VOID DelPortCfg(UINT nPort);
+
+JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_editPortConfigStart(JNIEnv *env, jobject thisz) {
+    UINT nOldState = SwitchToState(SM_INVALID);
+
+    DismountPorts();						// dismount the ports
+    return nOldState;
+}
+
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_editPortConfigEnd(JNIEnv *env, jobject thisz, jint nOldState) {
+    MountPorts();							// remount the ports
+
+    SwitchToState(nOldState);
+}
 
 JNIEXPORT jint JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_getPortCfgModuleIndex(JNIEnv *env, jobject thisz, jint port) {
     PPORTCFG psCfg = psPortCfg[port];
@@ -1422,42 +1438,37 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_addNew
     (*ppsCfg)->dwBase  = 0x00000;
 }
 
-JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_deletePort(JNIEnv *env, jobject thisz, jint nActPort, jint nItem) {
-    PPORTCFG *ppsCfg;
-    // if a module is not applied the button is working in the "Abort" context
-    if ((*CfgModule(nActPort))->bApply == FALSE)
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_configModuleAbort(JNIEnv *env, jobject thisz, jint nActPort) {
+    DelPortCfg(nActPort);		// delete the not applied module
+}
+
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_configModuleDelete(JNIEnv *env, jobject thisz, jint nActPort, jint nItemSelectedModule) {
+    INT nItem,nIndex;
+
+    _ASSERT(nActPort < ARRAYSIZEOF(bChanged));
+    bChanged[nActPort] = TRUE;
+
+    // something selected
+    if ((nItem = nItemSelectedModule) != -1 /*LB_ERR*/)
     {
-        DelPortCfg(nActPort);		// delete the not applied module
+        // root of module
+        PPORTCFG *ppsCfg = &psPortCfg[nActPort];
+
+        // goto selected entry in the queue
+        for (nIndex = 0; nIndex < nItem && *ppsCfg != NULL; ++nIndex)
+        {
+            ppsCfg = &(*ppsCfg)->pNext;
+        }
+
+        if (*ppsCfg != NULL)
+        {
+            // mark entry as not applied that DelPortCfg() can delete it
+            (*ppsCfg)->bApply = FALSE;
+            DelPortCfg(nActPort); // delete the not applied module
+        }
     }
-    else							// "Delete" context
+    else						// nothing selected
     {
-        INT nItem,nIndex;
-
-        _ASSERT(nActPort < ARRAYSIZEOF(bChanged));
-        bChanged[nActPort] = TRUE;
-
-        // something selected
-        if (nItem != -1)
-        {
-            // root of module
-            ppsCfg = &psPortCfg[nActPort];
-
-            // goto selected entry in the queue
-            for (nIndex = 0; nIndex < nItem && *ppsCfg != NULL; ++nIndex)
-            {
-                ppsCfg = &(*ppsCfg)->pNext;
-            }
-
-            if (*ppsCfg != NULL)
-            {
-                // mark entry as not applied that DelPortCfg() can delete it
-                (*ppsCfg)->bApply = FALSE;
-                DelPortCfg(nActPort); // delete the not applied module
-            }
-        }
-        else						// nothing selected
-        {
-            DelPort(nActPort);		// delete port data
-        }
+        DelPort(nActPort);		// delete port data
     }
 }
