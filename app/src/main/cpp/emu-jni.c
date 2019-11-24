@@ -23,6 +23,7 @@
 #include "emu.h"
 #include "core/io.h"
 #include "core/kml.h"
+#include "core/ops.h"
 #include "win32-layer.h"
 #include "android-portcfg.h"
 
@@ -1471,4 +1472,135 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_config
     {
         DelPort(nActPort);		// delete port data
     }
+}
+
+JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_applyPort(JNIEnv *env, jobject thisz, jint nPort,
+        jint portDataType, jstring portDataFilename, jint portDataSize, jint portDataHardAddr, jint portDataChips) {
+
+    PPORTCFG psCfg;
+    DWORD    dwChipSize;
+    BOOL     bSucc;
+    INT      i;
+
+    _ASSERT(nPort < ARRAYSIZEOF(psPortCfg));
+    _ASSERT(psPortCfg[nPort] != NULL);
+
+    psCfg = *CfgModule(nPort);				// module in queue to configure
+
+    // module type combobox
+    //VERIFY((i = (INT) SendDlgItemMessage(hDlg,IDC_CFG_TYPE,CB_GETCURSEL,0,0)) != CB_ERR);
+    psCfg->nType = (UINT)portDataType; //sModType[i].dwData;
+
+    // hard wired address
+    psCfg->dwBase = 0x00000;
+
+    // filename
+    //GetDlgItemText(hDlg,IDC_CFG_FILE,psCfg->szFileName,ARRAYSIZEOF(psPortCfg[0]->szFileName));
+    const char *portDataFilenameUTF8 = (*env)->GetStringUTFChars(env, portDataFilename, NULL) ;
+    _tcsncpy(psCfg->szFileName, portDataFilenameUTF8, ARRAYSIZEOF(psPortCfg[0]->szFileName));
+    (*env)->ReleaseStringUTFChars(env, portDataFilename, portDataFilenameUTF8);
+
+    switch (psCfg->nType)
+    {
+        case TYPE_RAM:
+            if (*psCfg->szFileName == 0)		// empty filename field
+            {
+                // size combobox
+                //VERIFY((i = (INT) SendDlgItemMessage(hDlg,IDC_CFG_SIZE,CB_GETCURSEL,0,0)) != CB_ERR);
+                dwChipSize = portDataSize; //sMod[i].dwData;
+                bSucc = (dwChipSize != 0);
+            }
+            else								// given filename
+            {
+                LPBYTE pbyData;
+
+                // get RAM size from filename content
+                if ((bSucc = MapFile(psCfg->szFileName,&pbyData,&dwChipSize)))
+                {
+                    // independent RAM signature in file header?
+                    bSucc = dwChipSize >= 8 && (Npack(pbyData,8) == IRAMSIG);
+                    free(pbyData);
+                }
+            }
+            break;
+        case TYPE_HRD:
+            // hard wired address
+            //VERIFY((i = (INT) SendDlgItemMessage(hDlg,IDC_CFG_HARDADDR,CB_GETCURSEL,0,0)) != CB_ERR);
+            psCfg->dwBase = portDataHardAddr; //sHrdAddr[i].dwData;
+            // no break;
+        case TYPE_ROM:
+        case TYPE_HPIL:
+            // filename
+            bSucc = MapFile(psCfg->szFileName,NULL,&dwChipSize);
+            break;
+        default:
+            _ASSERT(FALSE);
+            dwChipSize = 0;
+            bSucc = FALSE;
+    }
+
+    // no. of chips combobox
+    //if ((i = (INT) SendDlgItemMessage(hDlg,IDC_CFG_CHIPS,CB_GETCURSEL,0,0)) == CB_ERR)
+    if ((i = portDataChips) == -1)
+        i = 0;								// no one selected, choose "Auto"
+
+    if (bSucc && i == 0)					// "Auto"
+    {
+        DWORD dwSize;
+
+        switch (psCfg->nType)
+        {
+            case TYPE_RAM:
+                // can be build out of 32KB chips
+                dwSize = ((dwChipSize % (32 * 2048)) == 0)
+                         ? (32 * 2048)			// use 32KB chips
+                         : ( 1 * 2048);			// use 1KB chips
+
+                if (dwChipSize < dwSize)		// 512 Byte Memory
+                    dwSize = dwChipSize;
+                break;
+            case TYPE_HRD:
+            case TYPE_ROM:
+            case TYPE_HPIL:
+                // can be build out of 16KB chips
+                dwSize = ((dwChipSize % (16 * 2048)) == 0)
+                         ? (16 * 2048)			// use 16KB chips
+                         : dwChipSize;			// use a single chip
+                break;
+            default:
+                _ASSERT(FALSE);
+                dwSize = 1;
+        }
+
+        i = dwChipSize / dwSize;			// calculate no. of chips
+    }
+
+    psCfg->dwChips = i;						// set no. of chips
+
+    if (bSucc)								// check size vs. no. of chips
+    {
+        DWORD dwSingleSize;
+
+        // check if the overall size is a multiple of a chip size
+        bSucc = (dwChipSize % psCfg->dwChips) == 0;
+
+        // check if the single chip has a power of 2 size
+        VERIFY((dwSingleSize = dwChipSize / psCfg->dwChips));
+        bSucc = bSucc && dwSingleSize != 0 && (dwSingleSize & (dwSingleSize - 1)) == 0;
+
+        if (!bSucc)
+        {
+            InfoMessage(_T("Number of chips don't fit to the overall size!"));
+        }
+    }
+
+    if (bSucc)
+    {
+        _ASSERT(nPort < ARRAYSIZEOF(bChanged));
+        bChanged[nPort]   = TRUE;
+        psCfg->dwSize = dwChipSize;
+        psCfg->bApply = TRUE;
+    }
+
+    return bSucc ? JNI_TRUE : JNI_FALSE;
 }

@@ -85,8 +85,8 @@ static LPCTSTR lpszChips[] =
 	_T("Auto"), _T("1"), _T("2"), _T("3"), _T("4"), _T("5"), _T("6"), _T("7"), _T("8")
 };
 
-static UINT nActPort = 0;					// the actual port
-static UINT nUnits = 0;						// no. of applied port units in the actual port slot
+//static UINT nActPort = 0;					// the actual port
+//static UINT nUnits = 0;						// no. of applied port units in the actual port slot
 
 /*static*/ BOOL		bChanged[ARRAYSIZEOF(lpszPorts)];
 /*static*/ PPORTCFG psPortCfg[ARRAYSIZEOF(lpszPorts)];

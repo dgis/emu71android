@@ -14,6 +14,8 @@
 
 #pragma once
 
+#define IRAMSIG		0xEDDDDD3B				// independent RAM signature (byte reverse order)
+
 typedef struct _PORTCFG
 {
     UINT	nIndex;							// logical no. in port queue
