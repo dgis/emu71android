@@ -80,6 +80,10 @@
     <string name="button_port_configuration_configure">Configure</string>
     <string name="label_port_configuration_hard_wired_address">Hard Wired Address</string>
     <string name="label_port_configuration_tcp_ip_configuration">TCP/IP Configuration</string>
+    <string name="contextual_menu_port_settings_delete">Delete Module</string>
+    <string name="contextual_menu_port_settings_data_load">Load Memory Data...</string>
+    <string name="contextual_menu_port_settings_data_save">Save Memory Data...</string>
+    <string name="contextual_menu_port_settings_tcpip_settings">Change TCP/IP Settings...</string>
 
     <string name="create_ram_card_title">Create RAM Card</string>
     <string name="message_open_security">Permission Denied</string>
@@ -104,6 +108,7 @@
     <string name="message_printer_share_graphic">Save printer paper as image</string>
     <string name="message_printer_out_of_paper">Out of paper error for the graphic printer (max line: %d, max pixel line: %d).</string>
     <string name="message_change_overlapping_lcd_mode_to_manual">The overlapping LCD mode has been changed to "Manual".</string>
+    <string name="message_change_overlapping_lcd_mode_to_auto">The overlapping LCD mode has been changed to "Auto".</string>
 
 
     <string name="settings_category_general_title">General</string>
@@ -154,9 +159,5 @@
     <string name="settings_category_macro_title">Macro</string>
     <string name="settings_macro_real_speed_title">Use Real Replay Speed</string>
     <string name="settings_macro_manual_speed_title">Manual Replay Speed</string>
-    <string name="contextual_menu_port_settings_delete">Delete Module</string>
-    <string name="contextual_menu_port_settings_data_load">Load Memory Data...</string>
-    <string name="contextual_menu_port_settings_data_save">Save Memory Data...</string>
-    <string name="contextual_menu_port_settings_tcpip_settings">Change TCP/IP Settings...</string>
 
 </resources>

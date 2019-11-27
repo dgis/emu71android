@@ -1554,9 +1554,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setRotationMode(rotationMode, isDynamic);
                     break;
                 case "settings_auto_layout":
-                    int autoLayoutMode = 1;
+                    int autoLayoutMode = 2;
                     try {
-                        autoLayoutMode = Integer.parseInt(sharedPreferences.getString("settings_auto_layout", "1"));
+                        autoLayoutMode = Integer.parseInt(sharedPreferences.getString("settings_auto_layout", "2"));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
@@ -1566,13 +1566,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setAllowPinchZoom(sharedPreferences.getBoolean("settings_allow_pinch_zoom", true));
                     break;
                 case "settings_lcd_overlapping_mode":
-                    int overlappingLCDMode = 0;
+                    int overlappingLCDMode = LCDOverlappingView.OVERLAPPING_LCD_MODE_NONE;
                     try {
                         overlappingLCDMode = Integer.parseInt(sharedPreferences.getString("settings_lcd_overlapping_mode", "0"));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
-                    lcdOverlappingView.setOverlappingLCDMode(overlappingLCDMode, isDynamic);
+                    lcdOverlappingView.setOverlappingLCDMode(overlappingLCDMode);
                     break;
                 case "settings_hide_bar":
                 case "settings_hide_bar_status":
