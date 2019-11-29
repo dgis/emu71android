@@ -44,7 +44,7 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.0 (2019-05-xx)
+Version 1.0beta1 (2019-11-28)
 
 - First public version available on the store.
 
