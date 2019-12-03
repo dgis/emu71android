@@ -4,8 +4,10 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -22,6 +24,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import androidx.appcompat.widget.Toolbar;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -38,6 +41,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     private boolean debug = false;
 
     public static final int INTENT_OPEN_ROM = 71;
+    public static final int INTENT_DATA_LOAD = 72;
+    public static final int INTENT_DATA_SAVE = 73;
 
     private Spinner spinnerSelPort;
     private AdapterView.OnItemSelectedListener spinnerSelPortOnItemSelected;
@@ -85,6 +90,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     private static final int PORT_DATA_TCP_PORT_IN = 13;
     private static final int PORT_DATA_NEXT_INDEX = 14;
     private static final int PORT_DATA_EXIST = 15;
+    private static final int PORT_DATA_IRAMSIG = 16;
     private int nOldState;
     private boolean isDismiss;
 
@@ -105,6 +111,10 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     public static native void configModuleAbort(int nActPort);
     public static native void configModuleDelete(int nActPort, int nItemSelectedModule);
     public static native boolean applyPort(int nPort, int portDataType, String portDataFilename, int portDataSize, int portDataHardAddr, int portDataChips);
+    public static native boolean dataLoad(int port, int portIndex, String filename);
+    public static native boolean dataSave(int port, int portIndex, String filename);
+    public static native void modifyOriginalTCPData(int port, int portIndex);
+
 
     public PortSettingsFragment() {
     }
@@ -323,7 +333,12 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             // must be a HPIL module
             int type = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_TYPE);
             if(type == 4 /*TYPE_HPIL*/)
-                OnEditTcpIpSettings(portModuleIndex);
+                OnEditTcpIpSettings(portModuleIndex, new Runnable() {
+                    @Override
+                    public void run() {
+
+                    }
+                });
         });
 
         return view;
@@ -344,16 +359,25 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         super.onCreateContextMenu(menu, v, menuInfo);
         if (v.getId() == R.id.listViewPortData) {
             Objects.requireNonNull(getActivity()).getMenuInflater().inflate(R.menu.fragment_port_settings_contextual_menu, menu);
-            for (int i = 0, n = menu.size(); i < n; i++) {
-                MenuItem item = menu.getItem(i);
-                AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-                int nItem = info.position;
-
-                int id = item.getItemId();
-                if (id == R.id.contextual_menu_port_settings_delete) {
-                } else  if (id == R.id.contextual_menu_port_settings_data_load) {
-                } else  if (id == R.id.contextual_menu_port_settings_data_save) {
-                } else  if (id == R.id.contextual_menu_port_settings_tcpip_settings) {
+            AdapterView.AdapterContextMenuInfo contextMenuInfo = (AdapterView.AdapterContextMenuInfo)menuInfo;
+            if(contextMenuInfo != null) {
+                int nModuleIndex = contextMenuInfo.position;
+                int type = getPortCfgInteger(nActPort, nModuleIndex, PORT_DATA_TYPE);
+                //MenuItem menuItemDelete = menu.findItem(R.id.contextual_menu_port_settings_delete);
+                MenuItem menuItemDataLoad = menu.findItem(R.id.contextual_menu_port_settings_data_load);
+                MenuItem menuItemDataSave = menu.findItem(R.id.contextual_menu_port_settings_data_save);
+                MenuItem menuItemTcpipSettings = menu.findItem(R.id.contextual_menu_port_settings_tcpip_settings);
+                if(type != 4 /*TYPE_HPIL*/) {
+                    // RAM with data
+                    // independent RAM signature?
+                    boolean iramsig = getPortCfgInteger(nActPort, nModuleIndex, PORT_DATA_IRAMSIG) != 0;
+                    if(menuItemDataLoad != null) menuItemDataLoad.setEnabled(iramsig);
+                    if(menuItemDataSave != null) menuItemDataSave.setEnabled(iramsig);
+                    if(menuItemTcpipSettings != null) menuItemTcpipSettings.setEnabled(false);
+                } else {
+                    if(menuItemDataLoad != null) menuItemDataLoad.setEnabled(false);
+                    if(menuItemDataSave != null) menuItemDataSave.setEnabled(false);
+                    if(menuItemTcpipSettings != null) menuItemTcpipSettings.setEnabled(true);
                 }
             }
         }
@@ -370,17 +394,26 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     @Override
     public boolean onContextItemSelected(@NonNull MenuItem item) {
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
-        int nItem = info.position;
+        int portModuleIndex = info.position;
         switch(item.getItemId()) {
             case R.id.contextual_menu_port_settings_delete:
-                configModuleDelete(nActPort, nItem);
+                configModuleDelete(nActPort, portModuleIndex);
                 ShowPortConfig(nActPort);
                 return true;
             case R.id.contextual_menu_port_settings_data_load:
+                OnPortCfgDataLoad(portModuleIndex);
                 break;
             case R.id.contextual_menu_port_settings_data_save:
+                OnPortCfgDataSave(portModuleIndex);
                 break;
             case R.id.contextual_menu_port_settings_tcpip_settings:
+                OnEditTcpIpSettings(portModuleIndex, () -> {
+                    // Modify the original data to avoid a configuration changed on the whole module
+                    modifyOriginalTCPData(nActPort, portModuleIndex);
+
+                    ShowPortConfig(nActPort);
+
+                });
                 break;
         }
         return super.onContextItemSelected(item);
@@ -442,9 +475,16 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 // filename
                 String fileName = getPortCfgString(port, portIndex, PORT_DATA_FILENAME);
                 if (fileName != null && fileName.length() > 0) { // given filename
-                    buffer += ", 0\"";
-                    int fileNameLength = fileName.length();
-                    buffer += fileName.substring(Math.max(0, fileNameLength - 36), fileNameLength);
+                    buffer += ", \"";
+                    //buffer += fileName.substring(Math.max(0, fileNameLength - 36), fileNameLength);
+                    String displayName = fileName;
+                    try {
+                        displayName = Utils.getFileName(getContext(), fileName);
+                    } catch(Exception e) {
+                        // Do nothing
+                    }
+                    int fileNameLength = displayName.length();
+                    buffer += displayName.substring(Math.max(0, fileNameLength - 36), fileNameLength);
                     buffer += "\"";
                 }
 
@@ -542,7 +582,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             spinnerHardAddr.setEnabled(false);
 
             String addrOut = getPortCfgString(nActPort, portModuleIndex, PORT_DATA_ADDR_OUT);
-            if (addrOut != null) { // first call
+            if (addrOut == null) { // first call
                 // init tpc/ip settings with default values
                 setPortCfgString(nActPort, portModuleIndex, PORT_DATA_ADDR_OUT, "localhost");
                 setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_OUT, 60001);
@@ -557,8 +597,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             buttonTCPIP.setEnabled(false);
 
             if (type == 3 /*TYPE_HRD*/) { // hard wired chip
-                int nIndex = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_BASE);
-                spinnerHardAddr.setSelection(nIndex);
+                int baseAddress = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_BASE);
+                spinnerHardAddr.setSelection(baseAddress == 0 ? 0 : 1);
                 spinnerHardAddr.setEnabled(true);
             }
             else
@@ -578,121 +618,6 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             return true;
         }
         return false;
-
-//        int portModuleIndex = getPortCfgModuleIndex(nPort); // module in queue to configure
-//
-//        // module type combobox
-//        int type = spinnerType.getSelectedItemPosition() + 1;
-//        setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_TYPE, type);
-//
-//        // hard wired address
-//        setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_BASE, 0x00000);
-//
-//        // filename
-//        setPortCfgString(nPort, portModuleIndex, PORT_DATA_FILENAME, configFilename);
-//
-//        boolean bSucc = false;
-//        int dwChipSize = 0;
-//        int i;
-//        switch (type) {
-//            case 1: //TYPE_RAM
-//                if (configFilename.length() == 0) { // empty filename field
-//                    // size combobox
-//                    i = spinnerSize.getSelectedItemPosition();
-//                    dwChipSize = getChipSizeFromSelectedPosition(i);
-//                    bSucc = (dwChipSize != 0);
-//                } else {								// given filename
-////TODO
-////                    LPBYTE pbyData;
-////
-////                    // get RAM size from filename content
-////                    if ((bSucc = MapFile(psCfg->szFileName,&pbyData,&dwChipSize)))
-////                    {
-////                        // independent RAM signature in file header?
-////                        bSucc = dwChipSize >= 8 && (Npack(pbyData,8) == IRAMSIG);
-////                        free(pbyData);
-////                    }
-//                }
-//                break;
-//            case 3: //TYPE_HRD
-//                // hard wired address
-//                i = spinnerHardAddr.getSelectedItemPosition();
-//                if(i == 0)
-//                    setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_BASE, 0x00000);
-//                else if(i == 1)
-//                    setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_BASE, 0xE0000);
-//                // no break;
-//            case 2: //TYPE_ROM
-//            case 4: //TYPE_HPIL
-//                // filename
-////TODO
-//                bSucc = MapFile(psCfg->szFileName,NULL,&dwChipSize);
-//                break;
-//            default:
-//                dwChipSize = 0;
-//                bSucc = false;
-//        }
-//
-//        // no. of chips combobox
-//        //if ((i = (INT) SendDlgItemMessage(hDlg,IDC_CFG_CHIPS,CB_GETCURSEL,0,0)) == CB_ERR)
-//        //  i = 0;								// no one selected, choose "Auto"
-//        i = spinnerChips.getSelectedItemPosition();
-//
-//        if (bSucc && i == 0) { // "Auto"
-//            int dwSize;
-//
-//            switch (type)
-//            {
-//                case 1: //TYPE_RAM
-//                    // can be build out of 32KB chips
-//                    dwSize = ((dwChipSize % (32 * 2048)) == 0)
-//                            ? (32 * 2048) // use 32KB chips
-//                            : (     2048); // use 1KB chips
-//
-//                    if (dwChipSize < dwSize) // 512 Byte Memory
-//                        dwSize = dwChipSize;
-//                    break;
-//                case 3: //TYPE_HRD
-//                case 2: //TYPE_ROM
-//                case 4: //TYPE_HPIL
-//                    // can be build out of 16KB chips
-//                    dwSize = ((dwChipSize % (16 * 2048)) == 0)
-//                            ? (16 * 2048) // use 16KB chips
-//                            : dwChipSize; // use a single chip
-//                    break;
-//                default:
-//                    dwSize = 1;
-//            }
-//
-//            i = dwChipSize / dwSize; // calculate no. of chips
-//        }
-//
-//        int chips = i; // set no. of chips
-//        setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_CHIPS, chips);
-//
-//        if (bSucc) { // check size vs. no. of chips
-//            int dwSingleSize;
-//
-//            // check if the overall size is a multiple of a chip size
-//            bSucc = (dwChipSize % chips) == 0;
-//
-//            // check if the single chip has a power of 2 size
-//            dwSingleSize = dwChipSize / chips;
-//            bSucc = bSucc && dwSingleSize != 0 && (dwSingleSize & (dwSingleSize - 1)) == 0;
-//
-//            if (!bSucc)
-//                Utils.showAlert(getContext(), "Number of chips don't fit to the overall size!");
-//        }
-//
-//        if (bSucc) {
-//            setPortChanged(nPort, 1);
-//            setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_SIZE, dwChipSize);
-//            setPortCfgInteger(nPort, portModuleIndex, PORT_DATA_APPLY, 1);
-//
-//            // set focus on "Add" button
-//            buttonAdd.requestFocus();
-//        }
-//        return bSucc;
     }
 
     private int getChipSizeFromSelectedPosition(int position) {
@@ -722,7 +647,58 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         startActivityForResult(intent, INTENT_OPEN_ROM);
     }
 
-    private void OnEditTcpIpSettings(int portModuleIndex) {
+    int portModuleIndexForDataSaveLoad = -1;
+    private void OnPortCfgDataLoad(int portModuleIndex) {
+        portModuleIndexForDataSaveLoad = portModuleIndex;
+
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-ram.bin");
+        startActivityForResult(intent, INTENT_DATA_LOAD);
+    }
+    private void OnPortCfgDataSave(int portModuleIndex) {
+        portModuleIndexForDataSaveLoad = portModuleIndex;
+
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.filename) + "-ram.bin");
+        startActivityForResult(intent, INTENT_OPEN_ROM);
+    }
+
+    private void OnEditTcpIpSettings(int portModuleIndex, Runnable endCallback) {
+        View view = requireActivity().getLayoutInflater().inflate(R.layout.fragment_port_settings_edit_tcp, null);
+        EditText editTextAddrOut = view.findViewById(R.id.editTextAddrOut);
+        String addressOut = getPortCfgString(nActPort, portModuleIndex, PORT_DATA_ADDR_OUT);
+        editTextAddrOut.setText(addressOut);
+        EditText editTextPortOut = view.findViewById(R.id.editTextPortOut);
+        int portOut = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_OUT);
+        editTextPortOut.setText("" + portOut);
+        EditText editTextPortIn = view.findViewById(R.id.editTextPortIn);
+        int portIn = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_IN);
+        editTextPortIn.setText("" + portIn);
+        new AlertDialog.Builder(Objects.requireNonNull(getContext()))
+                .setTitle(R.string.fragment_port_settings_edit_tcp_title)
+                .setView(view)
+                .setPositiveButton(R.string.message_ok, (dialog, whichButton) -> {
+                    String editTextAddrOutText = editTextAddrOut.getText().toString();
+                    setPortCfgString(nActPort, portModuleIndex, PORT_DATA_ADDR_OUT, editTextAddrOutText);
+                    String editTextPortOutText = editTextPortOut.getText().toString();
+                    try {
+                        int editTextPortOutValue = Integer.parseInt(editTextPortOutText);
+                        setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_OUT, editTextPortOutValue);
+                    } catch (NumberFormatException ignored) {}
+                    String editTextPortInText = editTextPortIn.getText().toString();
+                    try {
+                        int editTextPortInValue = Integer.parseInt(editTextPortInText);
+                        setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_PORT_IN, editTextPortInValue);
+                    } catch (NumberFormatException ignored) {}
+                    if(endCallback != null)
+                        endCallback.run();
+                })
+                .setNegativeButton(R.string.message_cancel, (dialog, whichButton) -> {})
+                .show();
     }
 
     @Override
@@ -738,6 +714,15 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                     // Do nothing
                 }
                 editTextFile.setText(displayName);
+                Utils.makeUriPersistableReadOnly(getContext(), data, uri);
+            } else if(requestCode == INTENT_DATA_LOAD && portModuleIndexForDataSaveLoad >= 0) {
+                Uri uri = data.getData();
+                dataLoad(nActPort, portModuleIndexForDataSaveLoad, uri.toString());
+                portModuleIndexForDataSaveLoad = -1;
+            } else if(requestCode == INTENT_DATA_SAVE && portModuleIndexForDataSaveLoad >= 0) {
+                Uri uri = data.getData();
+                dataSave(nActPort, portModuleIndexForDataSaveLoad, uri.toString());
+                portModuleIndexForDataSaveLoad = -1;
             }
         }
         super.onActivityResult(requestCode, resultCode, data);

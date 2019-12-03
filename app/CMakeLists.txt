@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.4.1)
 #add_compile_options(-DDEBUG_SOUND)
 #add_compile_options(-DDEBUG_DEBUGGER)
 #add_compile_options(-DDEBUG_IO)
-add_compile_options(-DDEBUG_TCPIP)
+#add_compile_options(-DDEBUG_TCPIP)
 
 #add_compile_options(-DDEBUG_ANDROID_WAVE_OUT)
 #add_compile_options(-DDEBUG_ANDROID_TIMER)
