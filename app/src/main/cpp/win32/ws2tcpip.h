@@ -15,6 +15,8 @@ typedef struct sockaddr_in6 SOCKADDR_IN6_LH;
 typedef SOCKADDR_IN6_LH *PSOCKADDR_IN6;
 typedef struct in6_addr *PIN6_ADDR;
 
-#define closesocket close
+//#define closesocket close
+#define select win32_select
+
 
 #endif //TRUNK_WS2TCPIP_H
