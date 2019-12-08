@@ -193,8 +193,12 @@ static UINT __stdcall ThreadTcpIpServer(PTCPIP p)
 			for (i = 0; i < p->nNumSocks; ++i)
 				FD_SET(p->sockfds[i], &SockSet);
 
+			int nfds = 0;
+            for (i = 0; i < p->nNumSocks; ++i)
+                nfds = MAX(nfds, p->sockfds[i]) + 1;
+
 			// select() can be finished by closesocket()
-			if (select(p->nNumSocks, &SockSet, NULL, NULL, NULL) == SOCKET_ERROR)
+			if (select(nfds /*p->nNumSocks*/, &SockSet, NULL, NULL, NULL) == SOCKET_ERROR)
 			{
 				// Win9x break with WSAEINTR (a blocking socket call was canceled)
 				if (WSAEINTR != WSAGetLastError())
