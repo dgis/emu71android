@@ -87,6 +87,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:text="@string/button_port_configuration_delete"
+                android:visibility="gone"
                 app:layout_constraintEnd_toStartOf="@+id/buttonApply"
                 app:layout_constraintStart_toEndOf="@+id/buttonAbort"
                 app:layout_constraintTop_toTopOf="@+id/buttonAbort" />

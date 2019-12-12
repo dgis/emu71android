@@ -1,13 +1,14 @@
 DESCRIPTION
 
 This project ports the Windows application Emu71 written in C to Android.
-It uses the Android NDK. The former Emu71 source code remains untouched because of a thin win32 emulation layer above Linux/NDK!
+It uses the Android NDK. The former Emu71 source code (written by Christoph Giesselink) remains untouched because of a thin win32 emulation layer above Linux/NDK!
 This win32 layer will allow to easily update from the original Emu71 source code.
 It can open or save the exact same state files (state.e??) than the original Windows application!
 
 This application does NOT come with the ROM files!
 You will need KML scripts and ROM files already copied into your Android filesystem.
-You can download the KML scripts from the original Emu71 Windows application archive (https://hp.giesselink.com/emu71.htm)
+You can download the KML scripts here: http://regis.cosnier.free.fr/soft/androidEmu71/Emu71-KML-original.zip
+Or you can download the KML scripts from the original Emu71 Windows application archive (https://hp.giesselink.com/emu71.htm)
 and you can extract the ROM file from a real calculator (or be lucky on internet).
 Be careful about the case sensitivity of the filename in the KML script (Linux is case sensitive, not Windows).
 
@@ -32,19 +33,19 @@ NOTES
 - The Help menu displays Emu71's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
+- The port configuration is very similar to Emu71 for Windows
 
 
 NOT WORKING YET
 
 - Disassembler
 - Debugger
-- Macro
-- Infrared Printer
+- HP-IL
 
 
 CHANGES
 
-Version 1.0beta1 (2019-11-28)
+Version 1.0 (2019-12-12)
 
 - First public version available on the store.
 

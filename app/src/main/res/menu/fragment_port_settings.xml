@@ -3,9 +3,9 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/menu_port_settings_save"
-        android:icon="@drawable/ic_save_black_24dp"
+        android:icon="@drawable/ic_save_white_24dp"
         android:title="@string/menu_port_settings_save"
         android:visible="true"
-        app:showAsAction="always" />
+        app:showAsAction="always|withText" />
 
 </menu>

@@ -45,8 +45,6 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     public static final int INTENT_DATA_SAVE = 73;
 
     private Spinner spinnerSelPort;
-    private AdapterView.OnItemSelectedListener spinnerSelPortOnItemSelected;
-    //private int spinnerSelPortNoEvent = 0;
     private ArrayList<String> listItems = new ArrayList<>();
     private ArrayAdapter<String> adapterListViewPortData;
     private ListView listViewPortData;
@@ -55,11 +53,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
     private Button buttonDelete;
     private Button buttonApply;
     private Spinner spinnerType;
-    private AdapterView.OnItemSelectedListener spinnerTypeOnItemSelected;
-    //private int spinnerTypeNoEvent = 0;
     private Spinner spinnerSize;
-    private AdapterView.OnItemSelectedListener spinnerSizeOnItemSelected;
-    //private int spinnerSizeNoEvent = 0;
     private Spinner spinnerChips;
     private EditText editTextFile;
     private Button buttonBrowse;
@@ -73,7 +67,7 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
 
 
-    //enum PORT_DATA_TYPE {
+    //enum PORT_DATA_TYPE
     private static final int PORT_DATA_INDEX = 0;
     private static final int PORT_DATA_APPLY = 1;
     private static final int PORT_DATA_TYPE = 2;
@@ -174,14 +168,11 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         // init port combo box
         spinnerSelPort = view.findViewById(R.id.spinnerSelPort);
-        spinnerSelPort.setSelection(1);
-        spinnerSelPortOnItemSelected = new AdapterView.OnItemSelectedListener() {
+        spinnerSelPort.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//                if(spinnerSelPortNoEvent > 0) {
-//                    spinnerSelPortNoEvent--;
-//                    return;
-//                }
+                if(position == (int)spinnerSelPort.getTag())
+                    return;
 
 //                if (psPortCfg[nActPort] != NULL)
 //                {
@@ -199,8 +190,9 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
-        };
-        spinnerSelPort.setOnItemSelectedListener(spinnerSelPortOnItemSelected);
+        });
+        spinnerSelPort.setTag(1);
+        spinnerSelPort.setSelection(1);
 
         adapterListViewPortData = new ArrayAdapter<>(Objects.requireNonNull(getContext()), R.layout.simple_list_item_1, listItems);
         listViewPortData = view.findViewById(R.id.listViewPortData);
@@ -247,15 +239,12 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         });
 
         spinnerType = view.findViewById(R.id.spinnerType);
-        //spinnerTypeNoEvent++;
-        spinnerType.setSelection(0);
-        spinnerTypeOnItemSelected = new AdapterView.OnItemSelectedListener() {
+        spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//                if(spinnerTypeNoEvent > 0) {
-//                    spinnerTypeNoEvent--;
-//                    return;
-//                }
+                if(position == (int)spinnerType.getTag())
+                    return;
+
                 if(nActPort == -1) return;
 
                 // fetch module in queue to configure
@@ -266,8 +255,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
                 int type = position + 1;
                 setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_TYPE, type);
                 setPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_BASE, type == 3 /*TYPE_HRD*/
-								  ? 0xE0000
-								  : 0x00000);
+                        ? 0xE0000
+                        : 0x00000);
                 OnAddPort(nActPort);
             }
 
@@ -275,19 +264,16 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
-        };
-        spinnerType.setOnItemSelectedListener(spinnerTypeOnItemSelected);
+        });
+        spinnerType.setTag(0);
+        spinnerType.setSelection(0);
 
-                spinnerSize = view.findViewById(R.id.spinnerSize);
-        //spinnerSizeNoEvent++;
-        spinnerSize.setSelection(7);
-        spinnerSizeOnItemSelected = new AdapterView.OnItemSelectedListener() {
+        spinnerSize = view.findViewById(R.id.spinnerSize);
+        spinnerSize.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//                if(spinnerSizeNoEvent > 0) {
-//                    spinnerSizeNoEvent--;
-//                    return;
-//                }
+                if(position == (int)spinnerSize.getTag())
+                    return;
 
                 if(nActPort == -1) return;
 
@@ -309,8 +295,9 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             public void onNothingSelected(AdapterView<?> parent) {
 
             }
-        };
-        spinnerSize.setOnItemSelectedListener(spinnerSizeOnItemSelected);
+        });
+        spinnerSize.setTag(7);
+        spinnerSize.setSelection(7);
 
         spinnerChips = view.findViewById(R.id.spinnerChips);
         spinnerChips.setSelection(0);
@@ -430,7 +417,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         // button control
         buttonAdd.setEnabled(true);
-        buttonDelete.setEnabled(true); //TODO
+        //buttonDelete.setEnabled(true); //TODO
+        buttonAbort.setEnabled(false);
         buttonApply.setEnabled(false);
         spinnerType.setEnabled(false);
         spinnerSize.setEnabled(false);
@@ -518,7 +506,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         // button control
         buttonAdd.setEnabled(false);
-        buttonDelete.setEnabled(true);
+        //buttonDelete.setEnabled(true);
+        buttonAbort.setEnabled(true);
         buttonApply.setEnabled(true);
 
         // "Delete" button has now the meaning of "Abort"
@@ -526,10 +515,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
 
         // module type combobox
         int type = getPortCfgInteger(nActPort, portModuleIndex, PORT_DATA_TYPE);
-        //spinnerTypeNoEvent++;
-        spinnerType.setOnItemSelectedListener(null);
+        spinnerType.setTag(type - 1);
         spinnerType.setSelection(type - 1);
-        spinnerType.setOnItemSelectedListener(spinnerTypeOnItemSelected);
         spinnerType.setEnabled(true);
 
         // size combobox
@@ -548,10 +535,8 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
             else if(size == 128 * 2048) sizeIndex = 10; // 128K Byte
             else if(size == 160 * 2048) sizeIndex = 11; // 160K Byte
             else if(size == 192 * 2048) sizeIndex = 12; // 192K Byte
-            //spinnerSizeNoEvent++;
-            spinnerSize.setOnItemSelectedListener(null);
+            spinnerSize.setTag(sizeIndex);
             spinnerSize.setSelection(sizeIndex);
-            spinnerSize.setOnItemSelectedListener(spinnerSizeOnItemSelected);
             spinnerSize.setEnabled(true);
         } else
             spinnerSize.setEnabled(false);
