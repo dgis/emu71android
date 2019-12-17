@@ -1520,6 +1520,17 @@ JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_config
     }
 }
 
+JNIEXPORT void JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_deleteNotAppliedModule(JNIEnv *env, jobject thisz, jint nActPort) {
+    if (psPortCfg[nActPort] != NULL)
+    {
+        if ((*CfgModule(nActPort))->bApply == FALSE)
+        {
+            // delete the not applied module
+            DelPortCfg(nActPort);
+        }
+    }
+}
+
 JNIEXPORT jboolean JNICALL Java_org_emulator_seventy_one_PortSettingsFragment_applyPort(JNIEnv *env, jobject thisz, jint nPort,
         jint portDataType, jstring portDataFilename, jint portDataSize, jint portDataHardAddr, jint portDataChips) {
 
