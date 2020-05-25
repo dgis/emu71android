@@ -22,6 +22,10 @@ cmake_minimum_required(VERSION 3.4.1)
 add_compile_options(-DEMUXX=71)
 
 
+if(CMAKE_BUILD_TYPE STREQUAL Release)
+	message("RELEASE BUILD")
+	add_compile_options(-Ofast)
+endif()
 
 include_directories(src/main/cpp/win32)
 

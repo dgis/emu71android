@@ -1118,10 +1118,10 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getState(JNIEnv *e
 }
 
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenPositionX(JNIEnv *env, jobject thisz) {
-    return nLcdX;
+    return nLcdX - nBackgroundX;
 }
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenPositionY(JNIEnv *env, jobject thisz) {
-    return nLcdY;
+    return nLcdY - nBackgroundY;
 }
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenWidth(JNIEnv *env, jobject thisz) {
     INT nxSize,nySize;
@@ -1132,6 +1132,23 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeight(JN
     INT nxSize,nySize;
     GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
     return nySize; //*nLcdZoom;
+}
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenWidthNative(JNIEnv *env, jobject thisz) {
+	INT nxSize,nySize;
+	GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
+	return nxSize / nLcdZoom;
+}
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getScreenHeightNative(JNIEnv *env, jobject thisz) {
+	INT nxSize,nySize;
+	GetSizeLcdBitmap(&nxSize,&nySize);	// get LCD size
+	return nySize / nLcdZoom;
+}
+JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_getLCDBackgroundColor(JNIEnv *env, jobject thisz) {
+	if (hMainDC) {
+		COLORREF brushColor = GetPixel(hMainDC, nLcdX, nLcdY);
+		return ((brushColor & 0xFF0000) >> 16) | ((brushColor & 0xFF) << 16) | (brushColor & 0xFF00);
+	}
+	return -1;
 }
 
 

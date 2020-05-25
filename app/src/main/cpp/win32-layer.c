@@ -121,8 +121,23 @@ HANDLE CreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
 
     if(chooseCurrentKmlMode == ChooseKmlMode_FILE_OPEN || chooseCurrentKmlMode == ChooseKmlMode_CHANGE_KML) {
         // When we open a new E48 state document
+        // Deal with the KML file and its containing folder
+	    if(foundDocumentScheme) {
+		    // With a recorded "document:" scheme, extract the folder URL with content:// scheme
+		    // document: is only for a KML file
+		    _tcscpy(szEmuDirectory, lpFileName + _tcslen(documentScheme) * sizeof(TCHAR));
+		    TCHAR * filename = _tcschr(szEmuDirectory, _T('|'));
+		    if(filename) {
+			    *filename = _T('\0');
+		    }
+#if EMUXX == 48
+		    _tcscpy(szRomDirectory, szEmuDirectory);
+#endif
+		    SetCurrentDirectory(szEmuDirectory);
+	    } else {
         TCHAR * fileExtension = _tcsrchr(lpFileName, _T('.'));
-        if(fileExtension && ((fileExtension[1] == 'K' && fileExtension[2] == 'M' && fileExtension[3] == 'L') ||
+		    if (fileExtension &&
+		        ((fileExtension[1] == 'K' && fileExtension[2] == 'M' && fileExtension[3] == 'L') ||
                 (fileExtension[1] == 'k' && fileExtension[2] == 'm' && fileExtension[3] == 'l')
         )) {
             // And opening a KML file
@@ -137,17 +152,17 @@ HANDLE CreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
                 _tcscpy(szRomDirectory, szEmuDirectory);
 #endif
                 SetCurrentDirectory(szEmuDirectory);
-            } else if(foundDocumentScheme) {
-                // With a recorded "document:" scheme, extract the folder URL with content:// scheme
-                _tcscpy(szEmuDirectory, lpFileName + _tcslen(documentScheme) * sizeof(TCHAR));
-                TCHAR * filename = _tcschr(szEmuDirectory, _T('|'));
-                if(filename) {
-                    *filename = _T('\0');
-                }
-#if EMUXX == 48
-                _tcscpy(szRomDirectory, szEmuDirectory);
-#endif
-                SetCurrentDirectory(szEmuDirectory);
+//            } else if(foundDocumentScheme) {
+//                // With a recorded "document:" scheme, extract the folder URL with content:// scheme
+//                _tcscpy(szEmuDirectory, lpFileName + _tcslen(documentScheme) * sizeof(TCHAR));
+//                TCHAR * filename = _tcschr(szEmuDirectory, _T('|'));
+//                if(filename) {
+//                    *filename = _T('\0');
+//                }
+//#if EMUXX == 48
+//                _tcscpy(szRomDirectory, szEmuDirectory);
+//#endif
+//                SetCurrentDirectory(szEmuDirectory);
             } else {
                 _tcscpy(szEmuDirectory, "assets/calculators/");
 #if EMUXX == 48
@@ -156,6 +171,7 @@ HANDLE CreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, 
                 SetCurrentDirectory(szEmuDirectory);
             }
         }
+    }
     }
 
     if(!forceNormalFile
@@ -306,6 +322,7 @@ DWORD GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh) {
     } else if(hFile->handleType == HANDLE_TYPE_FILE_ASSET) {
         return (DWORD) AAsset_getLength64(hFile->fileAsset);
     }
+    return 0;
 }
 
 //** https://www.ibm.com/developerworks/systems/library/es-MigratingWin32toLinux.html
@@ -554,7 +571,7 @@ extern int jniDetachCurrentThread();
 #define MAX_CREATED_THREAD 30
 static HANDLE threads[MAX_CREATED_THREAD];
 
-static DWORD ThreadStart(LPVOID lpThreadParameter) {
+static void ThreadStart(LPVOID lpThreadParameter) {
     HANDLE handle = (HANDLE)lpThreadParameter;
     if(handle) {
         handle->threadStartAddress(handle->threadParameter);
@@ -2898,6 +2915,8 @@ INT_PTR DialogBoxParam(HINSTANCE hInstance, LPCTSTR lpTemplateName, HWND hWndPar
         } else if(chooseCurrentKmlMode == ChooseKmlMode_FILE_NEW) {
             lstrcpy(szCurrentKml, szChosenCurrentKml);
         } else if(chooseCurrentKmlMode == ChooseKmlMode_FILE_OPEN) {
+        	// We are here because we open a state file and the embedded KML path is not reachable.
+        	// So, we try to find a correct KML file in the current Custom KML scripts folder.
             if(!getFirstKMLFilenameForType(Chipset.type, szCurrentKml, sizeof(szCurrentKml) / sizeof(szCurrentKml[0]))) {
                 showAlert(_T("Cannot find the KML template file, sorry."), 0);
                 return -1;
@@ -2981,14 +3000,54 @@ void _wmakepath(wchar_t _Buffer, wchar_t const* _Drive, wchar_t const* _Dir, wch
 int WINAPI wvsprintf(LPSTR arg1, LPCSTR arg2, va_list arglist) {
     return vsprintf(arg1, arg2, arglist);
 }
-DWORD GetFullPathName(LPCSTR lpFileName, DWORD nBufferLength, LPSTR lpBuffer, LPSTR* lpFilePart) { return 0; }
+const char pathSeparator =
+#ifdef _WIN32
+        '\\';
+#else
+        '/';
+#endif
+
+DWORD GetFullPathName(LPCSTR lpFileName, DWORD nBufferLength, LPSTR lpBuffer, LPSTR* lpFilePart) {
+    lstrcpyn(lpBuffer, lpFileName, nBufferLength);
+    if(lpFilePart != NULL) {
+        *lpFilePart = strrchr(lpBuffer, pathSeparator);
+        if(*lpFilePart != NULL)
+            (*lpFilePart)++;
+    }
+    return lstrlen(lpBuffer);
+}
 LPSTR lstrcpyn(LPSTR lpString1, LPCSTR lpString2,int iMaxLength) {
     return strcpy(lpString1, lpString2);
 }
 LPSTR lstrcat(LPSTR lpString1, LPCSTR lpString2) {
-    return NULL;
+    return strcat(lpString1, lpString2);
 }
-void __cdecl _splitpath(char const* _FullPath, char* _Drive, char* _Dir, char* _Filename, char* _Ext) {}
+void __cdecl _splitpath(const char * _FullPath, char* _Drive, char* _Dir, char* _Filename, char* _Ext) {
+    if (_Drive)
+        _Drive[0] = 0;
+    char * filePart = strrchr(_FullPath, pathSeparator);
+    if(_Dir) {
+        if(filePart != NULL) {
+            strncpy(_Dir, _FullPath, (int)(filePart - _FullPath));
+        } else
+            _Dir[0] = 0;
+    }
+    if(_Filename) {
+        if(filePart != NULL) {
+            strcpy(_Filename, filePart + 1);
+        } else
+            _Filename[0] = 0;
+    }
+    if(_Ext) {
+        _Ext[0] = 0;
+        if(_Filename) {
+            char * extPart = strrchr(_Filename, '.');
+            if (extPart != NULL) {
+                strcpy(_Ext, extPart + 1);
+            }
+        }
+    }
+}
 int WINAPI lstrcmp(LPCSTR lpString1, LPCSTR lpString2) {
     return strcmp(lpString1, lpString2);
 }

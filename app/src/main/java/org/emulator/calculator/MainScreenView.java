@@ -22,6 +22,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseIntArray;
@@ -29,8 +30,10 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class MainScreenView extends PanAndScaleView {
@@ -38,10 +41,13 @@ public class MainScreenView extends PanAndScaleView {
     protected static final String TAG = "MainScreenView";
     protected final boolean debug = false;
 
-    private Paint paint = new Paint();
+    private Paint paintFullCalc = new Paint();
+	private Paint paintLCD = new Paint();
     private Bitmap bitmapMainScreen;
+	private Rect srcBitmapCopy = new Rect();
     private SparseIntArray vkmap;
     private HashMap<Character, Integer> charmap;
+    private List<Integer> numpadKey;
     private int kmlBackgroundColor = Color.BLACK;
     private boolean useKmlBackgroundColor = false;
     private int fallbackBackgroundColorType = 0;
@@ -49,7 +55,8 @@ public class MainScreenView extends PanAndScaleView {
     private boolean viewSized = false;
     private int rotationMode = 0;
     private boolean autoRotation = false;
-    private boolean autoZoom = false;
+	private boolean autoZoom = false;
+	private boolean usePixelBorders = false;
 
     public float defaultViewScaleFactorX = 1.0f;
     public float defaultViewScaleFactorY = 1.0f;
@@ -63,8 +70,12 @@ public class MainScreenView extends PanAndScaleView {
         setShowScaleThumbnail(true);
         setAllowDoubleTapZoom(false);
 
-        paint.setFilterBitmap(true);
-        paint.setAntiAlias(true);
+	    paintFullCalc.setFilterBitmap(true);
+	    paintFullCalc.setAntiAlias(true);
+
+	    paintLCD.setStyle(Paint.Style.STROKE);
+	    paintLCD.setStrokeWidth(1.0f);
+	    paintLCD.setAntiAlias(false);
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         ((Activity)context).getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
@@ -94,7 +105,11 @@ public class MainScreenView extends PanAndScaleView {
 //        vkmap.put(KeyEvent.KEYCODE_CTRL_RIGHT, 0x11); // VK_CONTROL
         vkmap.put(KeyEvent.KEYCODE_ESCAPE, 0x1B); // VK_ESCAPE
         vkmap.put(KeyEvent.KEYCODE_SPACE, 0x20); // VK_SPACE
-        vkmap.put(KeyEvent.KEYCODE_DPAD_LEFT, 0x25); // VK_LEFT
+	    vkmap.put(KeyEvent.KEYCODE_PAGE_UP, 0x21);  // VK_PRIOR
+	    vkmap.put(KeyEvent.KEYCODE_PAGE_DOWN, 0x22);  // VK_NEXT
+	    vkmap.put(KeyEvent.KEYCODE_MOVE_END, 0x23);  // VK_END
+	    vkmap.put(KeyEvent.KEYCODE_MOVE_HOME, 0x24);  // VK_HOME
+	    vkmap.put(KeyEvent.KEYCODE_DPAD_LEFT, 0x25); // VK_LEFT
         vkmap.put(KeyEvent.KEYCODE_DPAD_UP, 0x26); // VK_UP
         vkmap.put(KeyEvent.KEYCODE_DPAD_RIGHT, 0x27); // VK_RIGHT
         vkmap.put(KeyEvent.KEYCODE_DPAD_DOWN, 0x28); // VK_DOWN
@@ -158,6 +173,21 @@ public class MainScreenView extends PanAndScaleView {
         vkmap.put(KeyEvent.KEYCODE_APOSTROPHE, 0xDE);  // VK_OEM_7 (‘ »)
         vkmap.put(KeyEvent.KEYCODE_BACKSLASH, 0xDC);  // VK_OEM_5 (\|)
 
+	    numpadKey = Arrays.asList(
+	    		KeyEvent.KEYCODE_NUMPAD_0,
+			    KeyEvent.KEYCODE_NUMPAD_1,
+			    KeyEvent.KEYCODE_NUMPAD_2,
+			    KeyEvent.KEYCODE_NUMPAD_3,
+			    KeyEvent.KEYCODE_NUMPAD_4,
+			    KeyEvent.KEYCODE_NUMPAD_5,
+			    KeyEvent.KEYCODE_NUMPAD_6,
+			    KeyEvent.KEYCODE_NUMPAD_7,
+			    KeyEvent.KEYCODE_NUMPAD_8,
+			    KeyEvent.KEYCODE_NUMPAD_9,
+			    KeyEvent.KEYCODE_NUMPAD_DOT,
+			    KeyEvent.KEYCODE_NUMPAD_COMMA
+			    );
+
         this.setFocusable(true);
         this.setFocusableInTouchMode(true);
     }
@@ -205,6 +235,8 @@ public class MainScreenView extends PanAndScaleView {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
         && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+        	if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
+        		return false;
             char pressedKey = (char) event.getUnicodeChar();
             Integer windowsKeycode = charmap.get(pressedKey);
             if(windowsKeycode == null)
@@ -224,6 +256,8 @@ public class MainScreenView extends PanAndScaleView {
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
         && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+	        if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
+		        return false;
             char pressedKey = (char) event.getUnicodeChar();
             Integer windowsKeycode = charmap.get(pressedKey);
             if(windowsKeycode == null)
@@ -248,6 +282,7 @@ public class MainScreenView extends PanAndScaleView {
         updateLayout();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     protected void updateLayout() {
         if(bitmapMainScreen != null && virtualSizeHeight > 1) {
             if (virtualSizeWidth > 0.0f && viewSizeWidth > 0.0f) {
@@ -329,28 +364,87 @@ public class MainScreenView extends PanAndScaleView {
         }
     }
 
-    private Runnable onUpdateLayoutListener = null;
+	private Runnable onUpdateLayoutListener = null;
 
-    public void setOnUpdateLayoutListener(Runnable onUpdateLayoutListener) {
-        this.onUpdateLayoutListener = onUpdateLayoutListener;
-    }
+	public void setOnUpdateLayoutListener(Runnable onUpdateLayoutListener) {
+		this.onUpdateLayoutListener = onUpdateLayoutListener;
+	}
 
+	private Runnable onUpdateDisplayListener = null;
+
+	public void setOnUpdateDisplayListener(Runnable onUpdateDisplayListener) {
+		this.onUpdateDisplayListener = onUpdateDisplayListener;
+	}
+
+	@Override
+	protected void onCustomDraw(Canvas canvas) {
+		if (debug) Log.d(TAG, "onCustomDraw()");
+
+		canvas.drawColor(getBackgroundColor());
+
+		// Copy the full calculator with antialiasing
+		canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
+
+		if(usePixelBorders) {
+			// Copy the LCD part only without antialiasing
+			int x = NativeLib.getScreenPositionX();
+			int y = NativeLib.getScreenPositionY();
+			srcBitmapCopy.set(x, y, x + NativeLib.getScreenWidth(), y + NativeLib.getScreenHeight());
+			canvas.drawBitmap(bitmapMainScreen, srcBitmapCopy, srcBitmapCopy, paintLCD);
+		}
+	}
 
     @Override
-    protected void onCustomDraw(Canvas canvas) {
-        //Log.d(TAG, "onCustomDraw()");
+    public void onDraw(Canvas canvas) {
+	    if (debug)
+	    	Log.d(TAG, "onDraw()");
 
-        canvas.drawColor(getBackgroundColor());
-        canvas.drawBitmap(bitmapMainScreen, 0, 0, paint);
+        super.onDraw(canvas);
+
+        if(usePixelBorders) {
+	        int lcdWidthNative = NativeLib.getScreenWidthNative();
+	        if(lcdWidthNative > 0) {
+		        int lcdHeightNative = NativeLib.getScreenHeightNative();
+		        int lcdPositionX = NativeLib.getScreenPositionX();
+		        int lcdPositionY = NativeLib.getScreenPositionY();
+		        int lcdWidth = NativeLib.getScreenWidth();
+		        int lcdHeight = NativeLib.getScreenHeight();
+
+		        float screenPositionX = lcdPositionX * viewScaleFactorX + viewPanOffsetX;
+		        float screenPositionY = lcdPositionY * viewScaleFactorY + viewPanOffsetY;
+		        float screenWidth = lcdWidth * viewScaleFactorX;
+		        float screenHeight = lcdHeight * viewScaleFactorY;
+		        drawPixelBorder(canvas, lcdWidthNative, lcdHeightNative, screenPositionX, screenPositionY, screenWidth, screenHeight, paintLCD);
+	        }
+        }
     }
 
-    public void updateCallback(int type, int param1, int param2, String param3, String param4) {
+	static void drawPixelBorder(Canvas canvas, int lcdWidthNative, int lcdHeightNative, float screenPositionX, float screenPositionY, float screenWidth, float screenHeight, Paint paintLCD) {
+		// Draw the LCD grid lines without antialiasing to emulate the genuine pixels borders
+		int lcdBackgroundColor = 0xFF000000 | NativeLib.getLCDBackgroundColor();
+		paintLCD.setColor(lcdBackgroundColor);
+		float stepX = screenWidth / lcdWidthNative;
+		for (int x = 0; x < lcdWidthNative; x++) {
+			float screenX = screenPositionX + x * stepX;
+			canvas.drawLine(screenX, screenPositionY, screenX, screenPositionY + screenHeight, paintLCD);
+		}
+		float stepY = screenHeight / lcdHeightNative;
+		for (int y = 0; y < lcdHeightNative; y++) {
+			float screenY = screenPositionY + y * stepY;
+			canvas.drawLine(screenPositionX, screenY, screenPositionX + screenWidth, screenY, paintLCD);
+		}
+	}
+
+	public void updateCallback(int type, int param1, int param2, String param3, String param4) {
         switch (type) {
             case NativeLib.CALLBACK_TYPE_INVALIDATE:
-                //Log.d(TAG, "PAINT updateCallback() postInvalidate()");
+	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate()");
                 postInvalidate();
-                break;
+	            if(this.onUpdateDisplayListener != null)
+		            this.onUpdateDisplayListener.run();
+	            break;
             case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
+	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_WINDOW_RESIZE()");
                 // New Bitmap size
                 if(bitmapMainScreen == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
                     if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
@@ -406,9 +500,14 @@ public class MainScreenView extends PanAndScaleView {
         this.statusBarColor = statusBarColor;
     }
 
+	public void setUsePixelBorders(boolean usePixelBorders) {
+		this.usePixelBorders = usePixelBorders;
+		postInvalidate();
+	}
 
 
-    private int getBackgroundColor() {
+
+    public int getBackgroundColor() {
         if(useKmlBackgroundColor) {
             return kmlBackgroundColor;
         } else switch(fallbackBackgroundColorType) {

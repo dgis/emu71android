@@ -51,6 +51,8 @@ public class PrinterSimulator {
         } catch(Exception ex) {
             Log.d(TAG, "Cannot get the MaximumTextureSize (Set default to 2048). Error: " + ex.getMessage());
         }
+        if(maxBitmapHeight == 0)
+            maxBitmapHeight = 1024;
 
         maxBitmapHeight = Math.min(maxBitmapHeight, 8192); //32768);
         MAXPRTLINES = maxBitmapHeight / LINE_HEIGHT;
@@ -66,14 +68,6 @@ public class PrinterSimulator {
      */
     public void setPrinterModel82240A(boolean enable) {
         m_bPrinter82240A = enable;
-    }
-
-    /**
-     * true to prevent the line wrapping for the textual printer when the character '\4' is sent by the calc.
-     * @param preventLineWrap true to prevent the line wrapping; false otherwise.
-     */
-    public void setPreventLineWrap(boolean preventLineWrap) {
-        this.preventLineWrap = preventLineWrap;
     }
 
 
@@ -250,8 +244,6 @@ public class PrinterSimulator {
 
     // Text Printer
 
-    private boolean preventLineWrap = false;
-
     /**
      * ROMAN8 Unicode table
      */
@@ -301,7 +293,7 @@ public class PrinterSimulator {
     private void addTextData(int byData) {
         do {
             // special LF and LF characters
-            if (/*!preventLineWrap &&*/ byData == 0x04 || byData == 0x0A) {
+            if (byData == 0x04 || byData == 0x0A) {
                 textUpdate.append('\r');
                 textUpdate.append('\n');
                 if(debug) Log.d(TAG, "addTextData(" + byData + ")");

@@ -33,6 +33,7 @@ NOTES
 - The Help menu displays Emu71's original help HTML page and may not accurately reflect the behavior of this Android version.
 - When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
+- The port configuration is very similar to Emu71 for Windows
 
 
 NOT WORKING YET
@@ -44,9 +45,22 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.1 (2020-04-XX)
+
+- Intercept the ESC keyboard key to allow the use of the BACK soft key.
+- Add LCD pixel borders.
+- Add support for the dark theme.
+- Remove the non loadable file from the MRU file list.
+- Fix: Overlapping window source position when Background/Offset is not (0,0).
+- Wrap the table of content in the former help documentation.
+- Save the settings at the end of the state file.
+- Transform all child activities with dialog fragments (to prevent unwanted state save).
+- Fix an issue with the numpad keys which send the arrow keys and the numbers at the same time.
+
+
 Version 1.0 (2019-12-12)
 
-- First public version available on the store.
+- First public version available.
 
 
 LICENSES

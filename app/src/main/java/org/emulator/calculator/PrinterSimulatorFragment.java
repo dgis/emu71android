@@ -22,7 +22,9 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -63,16 +65,14 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setStyle(AppCompatDialogFragment.STYLE_NO_FRAME, android.R.style.Theme_Material);
+	    setStyle(AppCompatDialogFragment.STYLE_NO_FRAME, Utils.resId(this, "style", "AppTheme"));
     }
 
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         Dialog dialog = super.onCreateDialog(savedInstanceState);
-        Window window = dialog.getWindow();
-        if(window != null)
-            window.requestFeature(Window.FEATURE_NO_TITLE);
+	    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         return dialog;
     }
 
@@ -94,7 +94,7 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
 
         Toolbar toolbar = view.findViewById(Utils.resId(this, "id", "my_toolbar"));
         toolbar.setTitle(title);
-        toolbar.setNavigationIcon(Utils.resId(this, "drawable", "ic_keyboard_backspace_white_24dp"));
+	    Utils.colorizeDrawableWithColor(requireContext(), toolbar.getNavigationIcon(), android.R.attr.colorForeground);
         toolbar.setNavigationOnClickListener(
                 v -> dismiss()
         );
@@ -241,6 +241,8 @@ public class PrinterSimulatorFragment extends AppCompatDialogFragment {
         private void commonInitialization() {
             setShowScaleThumbnail(true);
             scaleThumbnailColor = Color.GRAY;
+
+	        paintBitmap.setAntiAlias(false);
         }
 
         public void setBitmap(Bitmap bitmap) {

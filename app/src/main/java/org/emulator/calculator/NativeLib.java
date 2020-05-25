@@ -24,8 +24,8 @@ public class NativeLib {
         System.loadLibrary("native-lib");
     }
 
-    public static final int CALLBACK_TYPE_INVALIDATE = 0;
-    public static final int CALLBACK_TYPE_WINDOW_RESIZE = 1;
+    static final int CALLBACK_TYPE_INVALIDATE = 0;
+    static final int CALLBACK_TYPE_WINDOW_RESIZE = 1;
 
     public static native void start(AssetManager mgr, Activity activity);
     public static native void stop();
@@ -58,7 +58,7 @@ public class NativeLib {
 
     public static native String[] getObjectsToSave();
     public static native int onObjectSave(String filename, boolean[] objectsToSaveItemChecked);
-    public static native void onViewCopy(Bitmap bitmapScreen);
+	public static native void onViewCopy(Bitmap bitmapScreen);
     public static native void onStackCopy();
     public static native void onStackPaste();
     public static native void onViewReset();
@@ -78,4 +78,7 @@ public class NativeLib {
     public static native int getScreenPositionY();
     public static native int getScreenWidth();
     public static native int getScreenHeight();
+    public static native int getScreenWidthNative();
+	public static native int getScreenHeightNative();
+	public static native int getLCDBackgroundColor();
 }
