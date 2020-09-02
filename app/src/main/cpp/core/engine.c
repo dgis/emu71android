@@ -42,12 +42,14 @@ DWORD  dwDbgStopPC = (DWORD) -1;			// stop address for goto cursor
 DWORD  dwDbgRstkp;							// stack recursion level of step over end
 DWORD  dwDbgRstk;							// possible return address
 
+BOOL   bBusCfg = FALSE;						// device configuration not changed since last update
+
 DWORD  *pdwInstrArray = NULL;				// last instruction array
 WORD   wInstrSize = 256;					// size of last instruction array
 WORD   wInstrWp;							// write pointer of instruction array
 WORD   wInstrRp;							// read pointer of instruction array
 
-BOOL   bBusCfg = FALSE;						// device configuration not changed since last update
+VOID (*fnOutTrace)(VOID) = NULL;			// callback function for file trace
 
 static INT   nDbgRplBreak = BN_ASM;			// flag for RPL breakpoint detection
 static INT   nDbgOldState = DBG_OFF;		// old state of debugger for suspend/resume
@@ -91,6 +93,10 @@ static __inline VOID Debugger(VOID)			// debugger part
 	UpdateDbgCycleCounter();				// update 64 bit cpu cycle counter
 
 	SaveInstrAddr(Chipset.pc);				// save pc in last instruction buffer
+	if (fnOutTrace != NULL)					// has a trace function
+	{
+		fnOutTrace();						// write file trace
+	}
 
 	nDbgRplBreak = BN_ASM;					// notify ASM breakpoint
 
@@ -478,7 +484,7 @@ loop:
 			Map(0x00,ARRAYSIZEOF(RMap)-1);	// update memory mapping
 			UpdateContrast();
 			UpdateMainDisplay();
-			UpdateAnnunciators();
+			UpdateAnnunciators(0xFFFFFFFF);
 			// init speed reference
 			dwOldCyc = (DWORD) (Chipset.cycles & 0xFFFFFFFF);
 			QueryPerformanceCounter(&lDummyInt);

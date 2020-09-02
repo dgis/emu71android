@@ -261,6 +261,54 @@ BOOL MapFile(LPCTSTR szFilename,LPBYTE *ppbyData,LPDWORD pdwFileSize)
 
 //################
 //#
+//#    BEEP Patch check
+//#
+//################
+
+BOOL CheckForBeepPatch(VOID)
+{
+	typedef struct beeppatch
+	{
+		const DWORD dwAddress;				// patch address
+		const BYTE  byPattern[4];			// patch pattern
+	} BEEPPATCH, *PBEEPPATCH;
+
+	// known beep patches
+	const BEEPPATCH s71[] = { { 0x0254A, { 0x8, 0x1, 0xB, 0x0 } },		// =RCKBp
+							  { 0x0EB40, { 0x8, 0x1, 0xB, 0x1 } } };	// =BP+C
+
+	const BEEPPATCH *psData;
+	UINT nDataItems;
+	BOOL bMatch;
+
+	switch (cCurrentRomType)
+	{
+	case 'T':								// HP71B
+		psData = s71;
+		nDataItems = ARRAYSIZEOF(s71);
+		break;
+	default:
+		psData = NULL;
+		nDataItems = 0;
+	}
+
+	// check if one data set match
+	for (bMatch = FALSE; !bMatch && nDataItems > 0; --nDataItems)
+	{
+		_ASSERT(pbyRom != NULL && psData != NULL);
+
+		// pattern matching?
+		bMatch =  (psData->dwAddress + ARRAYSIZEOF(psData->byPattern) < dwRomSize)
+			   && (memcmp(&pbyRom[psData->dwAddress],psData->byPattern,ARRAYSIZEOF(psData->byPattern))) == 0;
+		++psData;							// next data set
+	}
+	return bMatch;
+}
+
+
+
+//################
+//#
 //#    Patch
 //#
 //################
@@ -575,6 +623,7 @@ BOOL NewDocument(VOID)
 	if (!DisplayChooseKml(0)) goto restore;
 	if (!InitKML(szCurrentKml,FALSE)) goto restore;
 	Chipset.type = cCurrentRomType;
+	CrcRom(&Chipset.wRomCrc);				// save fingerprint of loaded ROM
 
 	LoadBreakpointList(NULL);				// clear debugger breakpoint list
 	bDocumentAvail = TRUE;					// document available
@@ -622,10 +671,18 @@ BOOL OpenDocument(LPCTSTR szFilename)
 		}
 	}
 
-	// read length of KML script name
+	// read length of KML script name, no script name characters to skip
 	ReadFile(hFile,&dwLength,sizeof(dwLength),&lBytesRead,NULL);
+
 	// KML script name too long for file buffer
-	if (dwLength >= ARRAYSIZEOF(szCurrentKml)) goto read_err;
+	if (dwLength >= ARRAYSIZEOF(szCurrentKml))
+	{
+		// skip heading KML script name characters until remainder fits into file buffer
+		UINT nSkip = dwLength - (ARRAYSIZEOF(szCurrentKml) - 1);
+		SetFilePointer(hFile, nSkip, NULL, FILE_CURRENT);
+
+		dwLength = ARRAYSIZEOF(szCurrentKml) - 1;
+	}
 	#if defined _UNICODE
 	{
 		LPSTR szTmp = (LPSTR) malloc(dwLength);
@@ -1562,7 +1619,7 @@ static HPALETTE CreateBIPalette(BITMAPINFOHEADER CONST *lpbi)
 	return hpal;
 }
 
-static HBITMAP DecodeBmp(LPBMPFILE pBmp)
+static HBITMAP DecodeBmp(LPBMPFILE pBmp,BOOL bPalette)
 {
 	LPBITMAPFILEHEADER pBmfh;
 	LPBITMAPINFO pBmi;
@@ -1612,7 +1669,7 @@ static HBITMAP DecodeBmp(LPBMPFILE pBmp)
 		pBmi, DIB_RGB_COLORS));
 	if (hBitmap == NULL) return NULL;
 
-	if (hPalette == NULL)
+	if (bPalette && hPalette == NULL)
 	{
 		hPalette = CreateBIPalette(&pBmi->bmiHeader);
 		// save old palette
@@ -1643,7 +1700,7 @@ static BOOL ReadGifWord(LPBMPFILE pGif, INT *n)
 	return FALSE;
 }
 
-static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor)
+static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor,BOOL bPalette)
 {
 	// this implementation base on the GIF image file
 	// decoder engine of Free42 (c) by Thomas Okken
@@ -2137,7 +2194,7 @@ static HBITMAP DecodeGif(LPBMPFILE pBmp,DWORD *pdwTransparentColor)
 	_ASSERT(bDecoding == FALSE);			// decoding successful
 
 	// normal decoding exit
-	if (hPalette == NULL)
+	if (bPalette && hPalette == NULL)
 	{
 		hPalette = CreateBIPalette((PBITMAPINFOHEADER) &bmi);
 		// save old palette
@@ -2154,7 +2211,7 @@ quit:
 	return hBitmap;
 }
 
-static HBITMAP DecodePng(LPBMPFILE pBmp)
+static HBITMAP DecodePng(LPBMPFILE pBmp,BOOL bPalette)
 {
 	// this implementation use the PNG image file decoder
 	// engine of Copyright (c) 2005-2018 Lode Vandevenne
@@ -2217,7 +2274,7 @@ static HBITMAP DecodePng(LPBMPFILE pBmp)
 		_ASSERT((DWORD) (pbyLine - pbyPixels) <= bmi.bmiHeader.biSizeImage);
 	}
 
-	if (hPalette == NULL)
+	if (bPalette && hPalette == NULL)
 	{
 		hPalette = CreateBIPalette((PBITMAPINFOHEADER) &bmi);
 		// save old palette
@@ -2239,7 +2296,7 @@ quit:
 	return hBitmap;
 }
 
-HBITMAP LoadBitmapFile(LPCTSTR szFilename)
+HBITMAP LoadBitmapFile(LPCTSTR szFilename,BOOL bPalette)
 {
 	HANDLE  hFile;
 	HANDLE  hMap;
@@ -2270,7 +2327,7 @@ HBITMAP LoadBitmapFile(LPCTSTR szFilename)
 		// check for bitmap file header "BM"
 		if (Bmp.dwFileSize >= 2 && *(WORD *) Bmp.pbyFile == 0x4D42)
 		{
-			hBitmap = DecodeBmp(&Bmp);
+			hBitmap = DecodeBmp(&Bmp,bPalette);
 			break;
 		}
 
@@ -2278,14 +2335,14 @@ HBITMAP LoadBitmapFile(LPCTSTR szFilename)
 		if (   Bmp.dwFileSize >= 6
 			&& (memcmp(Bmp.pbyFile,"GIF87a",6) == 0 || memcmp(Bmp.pbyFile,"GIF89a",6) == 0))
 		{
-			hBitmap = DecodeGif(&Bmp,&dwTColor);
+			hBitmap = DecodeGif(&Bmp,&dwTColor,bPalette);
 			break;
 		}
 
 		// check for PNG file header
 		if (Bmp.dwFileSize >= 8 && memcmp(Bmp.pbyFile,"\x89PNG\r\n\x1a\n",8) == 0)
 		{
-			hBitmap = DecodePng(&Bmp);
+			hBitmap = DecodePng(&Bmp,bPalette);
 			break;
 		}
 

@@ -996,8 +996,8 @@ static VOID ReadIO(enum CHIP eChip, BYTE *a, DWORD d, DWORD s, BOOL bUpdate)
 
 static VOID WriteIO(enum CHIP eChip, BYTE *a, DWORD d, DWORD s)
 {
-	BYTE c;
-	BOOL bAnnunciator = FALSE;				// no annunciator access
+	BYTE  c;
+	DWORD dwAnnunciator = 0;				// no annunciator write
 
 	LPBYTE pbyIORam = Chipset.dd[eChip].IORam;
 
@@ -1031,14 +1031,27 @@ static VOID WriteIO(enum CHIP eChip, BYTE *a, DWORD d, DWORD s)
 			_ASSERT(d >= 0x00 && d <= 0xF7);
 			if (d <= 0x5F)					// display RAM (96 nibbles)
 			{
-				pbyIORam[d] = c;			// display RAM content
-
 				// update annunciator area
-				bAnnunciator =  bAnnunciator
-							 // ANNAD1, ANN1_5, ANNAD2, ANN2_5
-							 || (eChip == SLAVE1 && d >= 0x00 && d <= 0x03)
-							 // ANNAD3, ANN3_5, ANNAD4, ANN4_5, ROWDVR (16 nibbles)
-							 || (eChip == MASTER && d >= 0x4C && d <= 0x5F);
+				// ANNAD1, ANN1_5, ANNAD2, ANN2_5
+				if (eChip == SLAVE1 && d >= 0x00 && d <= 0x03)
+				{
+					dwAnnunciator |= (pbyIORam[d] ^ c) << (d * 4);
+				}
+				if (eChip == MASTER)
+				{
+					// ANNAD3, ANN3_5, ANNAD4, ANN4_5
+					if (d >= 0x4C && d <= 0x4F)
+					{
+						dwAnnunciator |= (pbyIORam[d] ^ c) << ((d - 0x4C + 4) * 4);
+					}
+					// ROWDVR (16 nibbles)
+					if (d >= 0x50 && d <= 0x5F && (pbyIORam[d] ^ c) != 0)
+					{
+						dwAnnunciator = 0xFFFFFFFF;
+					}
+				}
+
+				pbyIORam[d] = c;			// display RAM content
 			}
 			// reserved (152 nibbles) no write
 			break;
@@ -1091,8 +1104,7 @@ static VOID WriteIO(enum CHIP eChip, BYTE *a, DWORD d, DWORD s)
 				}
 
 				// redraw annunciators if blink bit switched to off
-				bAnnunciator =  bAnnunciator
-							 || ((c^pbyIORam[d]) & pbyIORam[d] & DBLINK) != 0;
+				dwAnnunciator |= -(INT)(((c^pbyIORam[d]) & pbyIORam[d] & DBLINK) != 0);
 			}
 
 			// WkeEn OldReg NewReg -> WkeEn
@@ -1117,6 +1129,6 @@ static VOID WriteIO(enum CHIP eChip, BYTE *a, DWORD d, DWORD s)
 	} while (--s);
 
 	// when display is blinking, the annunciators are controlled by the UpdateDisplay() function
-	if (bAnnunciator && (Chipset.dd[MASTER].IORam[DD1CTL & 0xFF] & DBLINK) == 0) UpdateAnnunciators();
+	if (dwAnnunciator && (Chipset.dd[MASTER].IORam[DD1CTL & 0xFF] & DBLINK) == 0) UpdateAnnunciators(dwAnnunciator);
 	return;
 }

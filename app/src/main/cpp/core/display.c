@@ -139,7 +139,7 @@ VOID UpdateContrast(VOID)
 		GdiFlush();
 	}
 	LeaveCriticalSection(&csGDILock);
-	UpdateAnnunciators();					// adjust annunciator color
+	UpdateAnnunciators(0xFFFFFFFF);			// adjust annunciator color
 	return;
 }
 
@@ -304,7 +304,7 @@ BOOL CreateMainBitmap(LPCTSTR szFilename)
 	hMainDC = CreateCompatibleDC(hWindowDC);
 	_ASSERT(hMainDC != NULL);
 	if (hMainDC == NULL) return FALSE;		// quit if failed
-	hMainBitmap = LoadBitmapFile(szFilename);
+	hMainBitmap = LoadBitmapFile(szFilename,TRUE);
 	if (hMainBitmap == NULL)
 	{
 		DeleteDC(hMainDC);
@@ -339,7 +339,7 @@ BOOL CreateAnnunBitmap(LPCTSTR szFilename)
 	_ASSERT(hWindowDC != NULL);
 	VERIFY(hAnnunDC = CreateCompatibleDC(hWindowDC));
 	if (hAnnunDC == NULL) return FALSE;		// quit if failed
-	hAnnunBitmap = LoadBitmapFile(szFilename);
+	hAnnunBitmap = LoadBitmapFile(szFilename,FALSE);
 	if (hAnnunBitmap == NULL)
 	{
 		DeleteDC(hAnnunDC);
@@ -386,7 +386,7 @@ static VOID WritePixelZoom4(BYTE *p, BOOL a)
 	if (a)									// pixel on
 	{
 		// check alignment for ARM CPU
-		_ASSERT((DWORD) p % sizeof(DWORD) == 0);
+		_ASSERT((DWORD_PTR) p % sizeof(DWORD) == 0);
 
 		*(DWORD *)&p[0*LCD_ROW] = *(DWORD *)&p[4*LCD_ROW]  =
 		*(DWORD *)&p[8*LCD_ROW] = *(DWORD *)&p[12*LCD_ROW] = 0x01010101;
@@ -410,7 +410,7 @@ static VOID WritePixelZoom2(BYTE *p, BOOL a)
 	if (a)									// pixel on
 	{
 		// check alignment for ARM CPU
-		_ASSERT((DWORD) p % sizeof(WORD) == 0);
+		_ASSERT((DWORD_PTR) p % sizeof(WORD) == 0);
 
 		*(WORD *)&p[0*LCD_ROW] =
 		*(WORD *)&p[2*LCD_ROW] = 0x0101;
@@ -434,7 +434,7 @@ static VOID WritePixelDWORD(BYTE *p, BOOL a)
 		UINT x,y;
 
 		_ASSERT(nLcdxZoom > 0);				// x-Zoom factor
-		_ASSERT((DWORD) p % sizeof(DWORD) == 0); // check alignment for ARM CPU
+		_ASSERT((DWORD_PTR) p % sizeof(DWORD) == 0); // check alignment for ARM CPU
 
 		for (y = nLcdZoom; y > 0; --y)
 		{
@@ -459,7 +459,7 @@ static VOID WritePixelWORD(BYTE *p, BOOL a)
 		UINT x,y;
 
 		_ASSERT(nLcdxZoom > 0);				// x-Zoom factor
-		_ASSERT((DWORD) p % sizeof(WORD) == 0); // check alignment for ARM CPU
+		_ASSERT((DWORD_PTR) p % sizeof(WORD) == 0); // check alignment for ARM CPU
 
 		for (y = nLcdZoom; y > 0; --y)
 		{
@@ -532,7 +532,7 @@ VOID UpdateMainDisplay(VOID)
 
 		if ((nBlinkCnt & 0x1F) == 0)		// change of blink state
 		{
-			UpdateAnnunciators();			// redraw annunciators
+			UpdateAnnunciators(0xFFFFFFFF);	// redraw annunciators
 		}
 
 		if (nBlinkCnt >= 32)				// display off
@@ -550,7 +550,11 @@ VOID UpdateMainDisplay(VOID)
 	}
 	else
 	{
-		nBlinkCnt = 0;						// not blinking, keep annuciators on
+		if (nBlinkCnt != 0)
+		{
+			nBlinkCnt = 0;					// not blinking, keep annuciators on
+			UpdateAnnunciators(0xFFFFFFFF);	// redraw annunciators
+		}
 	}
 
 	// switch all dot matrix pixel off
@@ -600,7 +604,7 @@ VOID UpdateMainDisplay(VOID)
 	return;
 }
 
-VOID UpdateAnnunciators(VOID)
+VOID UpdateAnnunciators(DWORD dwUpdateMask)
 {
 /*
 	ANNAD1		0x2E100						// Annunciator [<- - - -]
@@ -635,11 +639,16 @@ VOID UpdateAnnunciators(VOID)
 			// build 8 annunciators base on the display ROW table
 			for (i = 0; i < ARRAYSIZEOF(byRowTable); ++i)
 			{
-				dwColor = dwKMLColor[((wCol & *(WORD *) &Chipset.dd[MASTER].IORam[byRowTable[i]]) != 0)
-									 ? byContrast
-									 : byContrast + 16
-									];
-				DrawAnnunciator(nAnnId++, bDispOn && dwColor != I, dwColor);
+				if ((dwUpdateMask & 0x1) != 0)
+				{
+					dwColor = dwKMLColor[((wCol & *(WORD *) &Chipset.dd[MASTER].IORam[byRowTable[i]]) != 0)
+										 ? byContrast
+										 : byContrast + 16
+										];
+					DrawAnnunciator(nAnnId, bDispOn && dwColor != I, dwColor);
+				}
+				dwUpdateMask >>= 1;
+				++nAnnId;
 			}
 		}
 
@@ -651,13 +660,19 @@ VOID UpdateAnnunciators(VOID)
 			// build 8 annunciators base on the display ROW table
 			for (i = 0; i < ARRAYSIZEOF(byRowTable); ++i)
 			{
-				dwColor = dwKMLColor[((wCol & *(WORD *) &Chipset.dd[MASTER].IORam[byRowTable[i]]) != 0)
-									 ? byContrast
-									 : byContrast + 16
-									];
-				DrawAnnunciator(nAnnId++, bDispOn && dwColor != I, dwColor);
+				if ((dwUpdateMask & 0x1) != 0)
+				{
+					dwColor = dwKMLColor[((wCol & *(WORD *) &Chipset.dd[MASTER].IORam[byRowTable[i]]) != 0)
+										 ? byContrast
+										 : byContrast + 16
+										];
+					DrawAnnunciator(nAnnId, bDispOn && dwColor != I, dwColor);
+				}
+				dwUpdateMask >>= 1;
+				++nAnnId;
 			}
 		}
+		_ASSERT(dwUpdateMask == 0);
 	}
 	return;
 }
@@ -690,7 +705,7 @@ VOID StartDisplay(VOID)
 	// display on?
 	if (Chipset.dd[MASTER].IORam[DD1CTL & 0xFF]&DON)
 	{
-		UpdateAnnunciators();				// switch on annunciators
+		UpdateAnnunciators(0xFFFFFFFF);		// switch on annunciators
 		VERIFY(uLcdTimerId = timeSetEvent(DISPLAY_FREQ,0,(LPTIMECALLBACK)&LcdProc,0,TIME_PERIODIC));
 	}
 	return;

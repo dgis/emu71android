@@ -59,7 +59,7 @@ public class SettingsFragment extends AppCompatDialogFragment {
 	protected final boolean debug = false;
 
 	private static Settings settings;
-    private HashSet<String> settingsKeyChanged = new HashSet<>();
+	private HashSet<String> settingsKeyChanged = new HashSet<>();
 	private Settings.OnOneKeyChangedListener sharedPreferenceChangeListener = (key) -> settingsKeyChanged.add(key);
 	private GeneralPreferenceFragment generalPreferenceFragment;
 
@@ -69,15 +69,15 @@ public class SettingsFragment extends AppCompatDialogFragment {
 
 	private OnSettingsKeyChangedListener onSettingsKeyChangedListener;
 
-    @Override
+	@Override
 	public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+		super.onCreate(savedInstanceState);
 
 		settings = EmuApplication.getSettings();
 		settings.registerOnOneKeyChangeListener(sharedPreferenceChangeListener);
 
 		setStyle(AppCompatDialogFragment.STYLE_NO_FRAME, R.style.AppTheme);
-        }
+	}
 
 	@NonNull
 	@Override
@@ -91,9 +91,9 @@ public class SettingsFragment extends AppCompatDialogFragment {
 		};
 		dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
 		return dialog;
-    }
+	}
 
-    @Override
+	@Override
 	public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
 		String title = getString(settings.getIsDefaultSettings() ? R.string.dialog_common_settings_title : R.string.dialog_state_settings_title);
@@ -149,30 +149,30 @@ public class SettingsFragment extends AppCompatDialogFragment {
 	private void dialogResult() {
 		if (onSettingsKeyChangedListener != null)
 			onSettingsKeyChangedListener.onSettingsKeyChanged(settingsKeyChanged);
-    }
+	}
 
-    @Override
+	@Override
 	public void onDestroy() {
 		settings.unregisterOnOneKeyChangeListener();
 		super.onDestroy();
-    }
+	}
 
 	void registerOnSettingsKeyChangedListener(OnSettingsKeyChangedListener listener) {
 		if(debug) Log.d(TAG, "registerOnSettingsKeyChangedListener()");
 		onSettingsKeyChangedListener = listener;
-    }
+	}
 
 	void unregisterOnSettingsKeyChangedListener() {
 		if(debug) Log.d(TAG, "unregisterOnSettingsKeyChangedListener()");
 		onSettingsKeyChangedListener = null;
-    }
+	}
 
-    public static class GeneralPreferenceFragment extends PreferenceFragmentCompat {
+	public static class GeneralPreferenceFragment extends PreferenceFragmentCompat {
 
-        Preference preferencePort2load = null;
+		Preference preferencePort2load = null;
 
-        @Override
-        public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+		@Override
+		public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 
 			// Register our own settings data store
 			getPreferenceManager().setPreferenceDataStore(EmuApplication.getSettings());
@@ -181,63 +181,63 @@ public class SettingsFragment extends AppCompatDialogFragment {
 			setPreferencesFromResource(R.xml.pref_general, rootKey);
 
 
-            // Sound settings
+			// Sound settings
 
-            SeekBarPreference preferenceSoundVolume = findPreference("settings_sound_volume");
-            if(preferenceSoundVolume != null) {
-                if(!NativeLib.getSoundEnabled()) {
-                    preferenceSoundVolume.setSummary("Cannot initialize the sound engine.");
-                    preferenceSoundVolume.setEnabled(false);
-                } else {
-                    preferenceSoundVolume.setOnPreferenceClickListener(preference -> {
+			SeekBarPreference preferenceSoundVolume = findPreference("settings_sound_volume");
+			if(preferenceSoundVolume != null) {
+				if(!NativeLib.getSoundEnabled()) {
+					preferenceSoundVolume.setSummary("Cannot initialize the sound engine.");
+					preferenceSoundVolume.setEnabled(false);
+				} else {
+					preferenceSoundVolume.setOnPreferenceClickListener(preference -> {
 						AlertDialog.Builder alert = new AlertDialog.Builder(requireContext());
-                        alert.setTitle(R.string.settings_sound_volume_dialog_title);
-                        final EditText input = new EditText(getContext());
-                        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-                        input.setRawInputType(Configuration.KEYBOARD_12KEY);
-                        input.setFocusable(true);
-                        input.setText(String.format(Locale.US,"%d", preferenceSoundVolume.getValue()));
-                        alert.setView(input);
-                        alert.setPositiveButton(R.string.message_ok, (dialog, whichButton) -> {
-                            String newValueText = input.getText().toString();
-                            try {
-                                int newValue = Integer.parseInt(newValueText);
-                                if(newValue >= preferenceSoundVolume.getMin() && newValue <= preferenceSoundVolume.getMax())
-                                    preferenceSoundVolume.setValue(newValue);
-                            } catch (NumberFormatException ignored) {}
-                        });
-                        alert.setNegativeButton(R.string.message_cancel, (dialog, whichButton) -> {});
-                        alert.show();
-                        return true;
-                    });
-                }
-            }
+						alert.setTitle(R.string.settings_sound_volume_dialog_title);
+						final EditText input = new EditText(getContext());
+						input.setInputType(InputType.TYPE_CLASS_NUMBER);
+						input.setRawInputType(Configuration.KEYBOARD_12KEY);
+						input.setFocusable(true);
+						input.setText(String.format(Locale.US,"%d", preferenceSoundVolume.getValue()));
+						alert.setView(input);
+						alert.setPositiveButton(R.string.message_ok, (dialog, whichButton) -> {
+							String newValueText = input.getText().toString();
+							try {
+								int newValue = Integer.parseInt(newValueText);
+								if(newValue >= preferenceSoundVolume.getMin() && newValue <= preferenceSoundVolume.getMax())
+									preferenceSoundVolume.setValue(newValue);
+							} catch (NumberFormatException ignored) {}
+						});
+						alert.setNegativeButton(R.string.message_cancel, (dialog, whichButton) -> {});
+						alert.show();
+						return true;
+					});
+				}
+			}
 
-            // Background color settings
+			// Background color settings
 
-            Preference preferenceBackgroundFallbackColor = findPreference("settings_background_fallback_color");
+			Preference preferenceBackgroundFallbackColor = findPreference("settings_background_fallback_color");
 //            final ColorPickerPreferenceCompat preferenceBackgroundCustomColor = (ColorPickerPreferenceCompat)findPreference("settings_background_custom_color");
-            if(preferenceBackgroundFallbackColor != null /*&& preferenceBackgroundCustomColor != null*/) {
-                final String[] stringArrayBackgroundFallbackColor = getResources().getStringArray(R.array.settings_background_fallback_color_item);
-                Preference.OnPreferenceChangeListener onPreferenceChangeListenerBackgroundFallbackColor = (preference, value) -> {
-                    if(value != null) {
-                        String stringValue = value.toString();
-                        int backgroundFallbackColor = -1;
-                        try {
-                            backgroundFallbackColor = Integer.parseInt(stringValue);
-                        } catch (NumberFormatException ignored) {}
-                        if(backgroundFallbackColor >= 0 && backgroundFallbackColor < stringArrayBackgroundFallbackColor.length)
-                            preference.setSummary(stringArrayBackgroundFallbackColor[backgroundFallbackColor]);
+			if(preferenceBackgroundFallbackColor != null /*&& preferenceBackgroundCustomColor != null*/) {
+				final String[] stringArrayBackgroundFallbackColor = getResources().getStringArray(R.array.settings_background_fallback_color_item);
+				Preference.OnPreferenceChangeListener onPreferenceChangeListenerBackgroundFallbackColor = (preference, value) -> {
+					if(value != null) {
+						String stringValue = value.toString();
+						int backgroundFallbackColor = -1;
+						try {
+							backgroundFallbackColor = Integer.parseInt(stringValue);
+						} catch (NumberFormatException ignored) {}
+						if(backgroundFallbackColor >= 0 && backgroundFallbackColor < stringArrayBackgroundFallbackColor.length)
+							preference.setSummary(stringArrayBackgroundFallbackColor[backgroundFallbackColor]);
 //                            preferenceBackgroundCustomColor.setEnabled(backgroundFallbackColor == 2);
-                    }
-                    return true;
-                };
-                preferenceBackgroundFallbackColor.setOnPreferenceChangeListener(onPreferenceChangeListenerBackgroundFallbackColor);
-                onPreferenceChangeListenerBackgroundFallbackColor.onPreferenceChange(preferenceBackgroundFallbackColor,
+					}
+					return true;
+				};
+				preferenceBackgroundFallbackColor.setOnPreferenceChangeListener(onPreferenceChangeListenerBackgroundFallbackColor);
+				onPreferenceChangeListenerBackgroundFallbackColor.onPreferenceChange(preferenceBackgroundFallbackColor,
 						settings.getString(preferenceBackgroundFallbackColor.getKey(), "0"));
 
 
-                //preferenceBackgroundCustomColor.setColorValue(customColor);
+				//preferenceBackgroundCustomColor.setColorValue(customColor);
 
 //                Preference.OnPreferenceChangeListener onPreferenceChangeListenerBackgroundCustomColor = new Preference.OnPreferenceChangeListener() {
 //                    @Override
@@ -250,21 +250,21 @@ public class SettingsFragment extends AppCompatDialogFragment {
 //                };
 //                preferenceBackgroundCustomColor.setOnPreferenceChangeListener(onPreferenceChangeListenerBackgroundCustomColor);
 //                onPreferenceChangeListenerBackgroundCustomColor.onPreferenceChange(preferenceBackgroundCustomColor, sharedPreferences.getBoolean(preferenceBackgroundCustomColor.getKey(), false));
-            }
+			}
 
-            // Macro
+			// Macro
 
-            Preference preferenceMacroRealSpeed = findPreference("settings_macro_real_speed");
-            Preference preferenceMacroManualSpeed = findPreference("settings_macro_manual_speed");
-            if(preferenceMacroRealSpeed != null && preferenceMacroManualSpeed != null) {
-                Preference.OnPreferenceChangeListener onPreferenceChangeListenerMacroRealSpeed = (preference, value) -> {
-                    if(value != null)
-                        preferenceMacroManualSpeed.setEnabled(!(Boolean) value);
-                    return true;
-                };
-                preferenceMacroRealSpeed.setOnPreferenceChangeListener(onPreferenceChangeListenerMacroRealSpeed);
+			Preference preferenceMacroRealSpeed = findPreference("settings_macro_real_speed");
+			Preference preferenceMacroManualSpeed = findPreference("settings_macro_manual_speed");
+			if(preferenceMacroRealSpeed != null && preferenceMacroManualSpeed != null) {
+				Preference.OnPreferenceChangeListener onPreferenceChangeListenerMacroRealSpeed = (preference, value) -> {
+					if(value != null)
+						preferenceMacroManualSpeed.setEnabled(!(Boolean) value);
+					return true;
+				};
+				preferenceMacroRealSpeed.setOnPreferenceChangeListener(onPreferenceChangeListenerMacroRealSpeed);
 				onPreferenceChangeListenerMacroRealSpeed.onPreferenceChange(preferenceMacroRealSpeed, settings.getBoolean(preferenceMacroRealSpeed.getKey(), true));
-            }
+			}
         }
     }
 }

@@ -47,6 +47,7 @@ CHANGES
 
 Version 1.1 (2020-04-XX)
 
+- Update from the original source code Emu71 for Windows version 1.12 from Christoph Gießelink.
 - Intercept the ESC keyboard key to allow the use of the BACK soft key.
 - Add LCD pixel borders.
 - Add support for the dark theme.
@@ -56,11 +57,15 @@ Version 1.1 (2020-04-XX)
 - Save the settings at the end of the state file.
 - Transform all child activities with dialog fragments (to prevent unwanted state save).
 - Fix an issue with the numpad keys which send the arrow keys and the numbers at the same time.
+- If the KML folder does not exist (like the first time), prompt the user to choose a new KML folder.
+- Move the KML folder in the JSON settings embedded in the state file because Windows cannot open the state file with KML url longer than 256 byte.
+- Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
+- Prevent app not responding (ANR) in NativeLib.buttonUp().
 
 
 Version 1.0 (2019-12-12)
 
-- First public version available.
+- First public version available. It is based on Emu71 for Windows version 1.10 from Christoph Gießelink.
 
 
 LICENSES

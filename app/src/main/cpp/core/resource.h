@@ -35,6 +35,7 @@
 #define IDD_DEBUG_MEMMAP                129
 #define IDD_PORTCFG                     130
 #define IDD_TCPIP_SETTINGS              131
+#define IDD_TRACE                       132
 #define IDC_REALSPEED                   1000
 #define IDC_SHOWTITLE                   1001
 #define IDC_SHOWMENU                    1002
@@ -155,6 +156,12 @@
 #define IDC_CFG_ADDR_OUT                1117
 #define IDC_CFG_PORT_OUT                1118
 #define IDC_CFG_PORT_IN                 1119
+#define IDC_TRACE_FILE                  1120
+#define IDC_TRACE_BROWSE                1121
+#define IDC_TRACE_NEW                   1122
+#define IDC_TRACE_APPEND                1123
+#define IDC_TRACE_REGISTER              1124
+#define IDC_TRACE_OPCODE                1125
 #define ID_FILE_NEW                     40001
 #define ID_FILE_OPEN                    40002
 #define ID_FILE_SAVE                    40003
@@ -220,15 +227,17 @@
 #define ID_PORTCFG_DATA_LOAD            40064
 #define ID_PORTCFG_DATA_SAVE            40065
 #define ID_PORTCFG_TCPIP_SETTINGS       40066
+#define ID_TRACE_SETTINGS               40067
+#define ID_TRACE_ENABLE                 40068
 #define ID_FILE_MRU_FILE1               40100
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        132
-#define _APS_NEXT_COMMAND_VALUE         40067
-#define _APS_NEXT_CONTROL_VALUE         1120
+#define _APS_NEXT_RESOURCE_VALUE        133
+#define _APS_NEXT_COMMAND_VALUE         40069
+#define _APS_NEXT_CONTROL_VALUE         1126
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

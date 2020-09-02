@@ -262,7 +262,7 @@ static LRESULT OnPaint(HWND hWindow)
             GdiFlush();
 		}
 		LeaveCriticalSection(&csGDILock);
-		UpdateAnnunciators();
+		UpdateAnnunciators(0xFFFFFFFF);
 		RefreshButtons(&rcMainPaint);
 	}
 	EndPaint(hWindow, &Paint);
