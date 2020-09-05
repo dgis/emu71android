@@ -61,6 +61,7 @@ Version 1.1 (2020-04-XX)
 - Move the KML folder in the JSON settings embedded in the state file because Windows cannot open the state file with KML url longer than 256 byte.
 - Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
 - Prevent app not responding (ANR) in NativeLib.buttonUp().
+- In the menu header, switch the pixel format RGB to BGR when an icon of type BMP is defined in the KML script.
 
 
 Version 1.0 (2019-12-12)
