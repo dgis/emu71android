@@ -45,6 +45,12 @@ NOT WORKING YET
 
 CHANGES
 
+Version 1.2 (2020-10-XX)
+
+- Fix transparency issue (RGB -> NGR).
+- Fix a printer issue from Christoph Gießelink's HP82240B Printer Simulator version 1.12.
+
+
 Version 1.1 (2020-04-XX)
 
 - Update from the original source code Emu71 for Windows version 1.12 from Christoph Gießelink.
