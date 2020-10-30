@@ -45,7 +45,7 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.1 (2020-04-XX)
+Version 1.1 (2020-11-XX)
 
 - Update from the original source code Emu71 for Windows version 1.12 from Christoph Gießelink.
 - Intercept the ESC keyboard key to allow the use of the BACK soft key.
@@ -62,6 +62,10 @@ Version 1.1 (2020-04-XX)
 - Prevent to auto save before launching the "Open...", "Save As...", "Load Object...", "Save Object...", etc...
 - Prevent app not responding (ANR) in NativeLib.buttonUp().
 - In the menu header, switch the pixel format RGB to BGR when an icon of type BMP is defined in the KML script.
+- Replaces the haptic feedback switch with a slider to adjust the vibration duration.
+- Fix transparency issue (RGB -> BGR).
+- Fix a printer issue from Christoph Gießelink's HP82240B Printer Simulator version 1.12.
+- Fix the KML button Type 3 with a Background offset which was not display at the right location (Fix #15). But Type 3 does not work very well with Emu42.
 
 
 Version 1.0 (2019-12-12)

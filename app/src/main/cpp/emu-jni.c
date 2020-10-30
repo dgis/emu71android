@@ -32,7 +32,8 @@ static jobject mainActivity = NULL;
 jobject bitmapMainScreen = NULL;
 AndroidBitmapInfo androidBitmapInfo;
 enum DialogBoxMode currentDialogBoxMode;
-enum ChooseKmlMode  chooseCurrentKmlMode;
+LPBYTE pbyRomBackup = NULL;
+enum ChooseKmlMode chooseCurrentKmlMode;
 TCHAR szChosenCurrentKml[MAX_PATH];
 TCHAR szKmlLog[10240];
 TCHAR szKmlLogBackup[10240];
@@ -650,222 +651,14 @@ JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onFileClose(JNIEnv
 }
 
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectLoad(JNIEnv *env, jobject thisz, jstring filename) {
-//    const char *filenameUTF8 = (*env)->GetStringUTFChars(env, filename , NULL) ;
-
-//    SuspendDebugger();						// suspend debugger
-//    bDbgAutoStateCtrl = FALSE;				// disable automatic debugger state control
-//
-//    if (!(Chipset.IORam[DSPCTL]&DON))		// calculator off, turn on
-//    {
-//        KeyboardEvent(TRUE,0,0x8000);
-//        Sleep(dwWakeupDelay);
-//        KeyboardEvent(FALSE,0,0x8000);
-//
-//        // wait for sleep mode
-//        while (Chipset.Shutdn == FALSE) Sleep(0);
-//    }
-//
-//    if (nState != SM_RUN)
-//    {
-//        InfoMessage(_T("The emulator must be running to load an object."));
-//        goto cancel;
-//    }
-//
-//    if (WaitForSleepState())				// wait for cpu SHUTDN then sleep state
-//    {
-//        InfoMessage(_T("The emulator is busy."));
-//        goto cancel;
-//    }
-//
-//    _ASSERT(nState == SM_SLEEP);
-//
-////    if (bLoadObjectWarning)
-////    {
-////        UINT uReply = YesNoCancelMessage(
-////                _T("Warning: Trying to load an object while the emulator is busy\n")
-////                _T("will certainly result in a memory lost. Before loading an object\n")
-////                _T("you should be sure that the calculator is in idle state.\n")
-////                _T("Do you want to see this warning next time you try to load an object?"),0);
-////        switch (uReply)
-////        {
-////            case IDYES:
-////                break;
-////            case IDNO:
-////                bLoadObjectWarning = FALSE;
-////                break;
-////            case IDCANCEL:
-////                SwitchToState(SM_RUN);
-////                goto cancel;
-////        }
-////    }
-//    if (   cCurrentRomType == 'N'			// HP32SII
-//           || cCurrentRomType == 'D')			// HP42S
-//    {
-////        if (!GetLoadObjectFilename(_T(RAW_FILTER),_T("RAW")))
-////        {
-////            SwitchToState(SM_RUN);
-////            goto cancel;
-////        }
-//        if (cCurrentRomType == 'N')
-//            GetUserCode32(filenameUTF8);
-//        else
-//            GetUserCode42(filenameUTF8);
-//        SwitchToState(SM_RUN);
-//    }
-//    else									// HP28S
-//    {
-////        if (!GetLoadObjectFilename(_T(HP_FILTER),_T("HP")))
-////        {
-////            SwitchToState(SM_RUN);
-////            goto cancel;
-////        }
-//        if (!LoadObject(filenameUTF8))
-//        {
-//            SwitchToState(SM_RUN);
-//            goto cancel;
-//        }
-//
-//        SwitchToState(SM_RUN);				// run state
-//        while (nState!=nNextState) Sleep(0);
-//        _ASSERT(nState == SM_RUN);
-//        KeyboardEvent(TRUE,0,0x8000);
-//        Sleep(dwWakeupDelay);
-//        KeyboardEvent(FALSE,0,0x8000);
-//        while (Chipset.Shutdn == FALSE) Sleep(0);
-//    }
-//
-//    cancel:
-//    bDbgAutoStateCtrl = TRUE;				// enable automatic debugger state control
-//    ResumeDebugger();
-//
-//
-//    (*env)->ReleaseStringUTFChars(env, filename, filenameUTF8);
-
     return TRUE;
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_emulator_calculator_NativeLib_getObjectsToSave(JNIEnv *env, jobject thisz) {
-
-//    if (nState != SM_RUN)
-//    {
-//        InfoMessage(_T("The emulator must be running to save an object."));
-//        return 0;
-//    }
-//
-//    if (WaitForSleepState())				// wait for cpu SHUTDN then sleep state
-//    {
-//        InfoMessage(_T("The emulator is busy."));
-//        return 0;
-//    }
-//
-//    _ASSERT(nState == SM_SLEEP);
-//
-//    labels[0] = 0;
-//    if (cCurrentRomType == 'N') { // HP32SII
-//        currentDialogBoxMode = DialogBoxMode_GET_USRPRG32;
-//        OnSelectProgram32();
-//    } else if(cCurrentRomType == 'D') { // HP42S
-//        currentDialogBoxMode = DialogBoxMode_GET_USRPRG42;
-//        OnSelectProgram42();
-//    }
-//    currentDialogBoxMode = DialogBoxMode_UNKNOWN;
-//
-//    int labelCount = 0;
-//    if(labels[0]) {
-//        int i = 0;
-//        while(i < MAX_LABEL_SIZE && labels[i]) {
-//            if(labels[i] == 9)
-//                labelCount++;
-//            i++;
-//        }
-//    }
-//
-//    jobjectArray objectArray = (jobjectArray)(*env)->NewObjectArray(env,
-//       labelCount,
-//       (*env)->FindClass(env, "java/lang/String"),
-//       (*env)->NewStringUTF(env, ""));
-//
-//    if(labelCount) {
-//        TCHAR * label = labels;
-//        int l = 0;
-//        int i = 0;
-//        while(i < MAX_LABEL_SIZE && labels[i]) {
-//            if(labels[i] == 9) {
-//                labels[i] = 0;
-//                (*env)->SetObjectArrayElement(env, objectArray,
-//                        l, (*env)->NewStringUTF(env, label));
-//                label = &labels[i + 1];
-//                l++;
-//            }
-//            i++;
-//        }
-//    }
-//
-//    SwitchToState(SM_RUN);
-
-//    return objectArray;
     return NULL;
 }
 
 JNIEXPORT jint JNICALL Java_org_emulator_calculator_NativeLib_onObjectSave(JNIEnv *env, jobject thisz, jstring filename, jbooleanArray objectsToSaveItemChecked) {
-    //OnObjectSave();
-
-//    const char *filenameUTF8 = (*env)->GetStringUTFChars(env, filename , NULL);
-//
-//    if (nState != SM_RUN)
-//    {
-//        InfoMessage(_T("The emulator must be running to save an object."));
-//        return 0;
-//    }
-//
-//    if (WaitForSleepState())				// wait for cpu SHUTDN then sleep state
-//    {
-//        InfoMessage(_T("The emulator is busy."));
-//        return 0;
-//    }
-//
-//    _ASSERT(nState == SM_SLEEP);
-//
-//
-//    if(objectsToSaveItemChecked &&
-//        (cCurrentRomType == 'N' // HP32SII
-//        || cCurrentRomType == 'D') // HP42S
-//    ) {
-//        jsize len = (*env)->GetArrayLength(env, objectsToSaveItemChecked);
-//        jboolean *body = (*env)->GetBooleanArrayElements(env, objectsToSaveItemChecked, 0);
-//        selItemDataCount = 0;
-//        for (int i = 0; i < len; i++) {
-//            selItemDataIndex[i] = body[i] ? TRUE : FALSE;
-//            if(selItemDataIndex[i])
-//                selItemDataCount++;
-//        }
-//        (*env)->ReleaseBooleanArrayElements(env, objectsToSaveItemChecked, body, 0);
-//
-//        _tcscpy(getSaveObjectFilenameResult, filenameUTF8);
-//
-//        if (cCurrentRomType == 'N') {
-//            currentDialogBoxMode = DialogBoxMode_SET_USRPRG32;
-//            OnSelectProgram32();
-//        } else {
-//            currentDialogBoxMode = DialogBoxMode_SET_USRPRG42;
-//            OnSelectProgram42();
-//        }
-//        getSaveObjectFilenameResult[0] = 0;
-//        currentDialogBoxMode = DialogBoxMode_UNKNOWN;
-//    }
-//    else									// HP28S
-//    {
-//        _ASSERT(cCurrentRomType == 'O');
-////        if (GetSaveObjectFilename(_T(HP_FILTER),_T("HP")))
-////        {
-//            SaveObject(filenameUTF8);
-////        }
-//    }
-//
-//    SwitchToState(SM_RUN);
-//
-//    (*env)->ReleaseStringUTFChars(env, filename, filenameUTF8);
-
     return TRUE;
 }
 
@@ -1088,6 +881,10 @@ JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_onToolMacroStop(JN
     OnToolMacroStop();
 }
 
+
+JNIEXPORT jboolean JNICALL Java_org_emulator_calculator_NativeLib_onLoadFlashROM(JNIEnv *env, jobject thisz, jstring filename) {
+	return JNI_FALSE;
+}
 
 JNIEXPORT void JNICALL Java_org_emulator_calculator_NativeLib_setConfiguration(JNIEnv *env, jobject thisz, jstring key, jint isDynamic, jint intValue1, jint intValue2, jstring stringValue) {
     const char *configKey = (*env)->GetStringUTFChars(env, key, NULL) ;
