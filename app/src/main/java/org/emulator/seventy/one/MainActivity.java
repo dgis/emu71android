@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
@@ -30,6 +31,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
@@ -50,7 +52,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
 import androidx.core.view.GravityCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.documentfile.provider.DocumentFile;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
@@ -122,6 +129,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	public static final int INTENT_LOAD_FLASH_ROM = 16;
 
 	public static String intentPickKmlFolderForUrlToOpen;
+	public String urlToOpenInIntentPort2Load;
+	public String kmlScriptFolderInIntentPort2Load;
 
 	private final String kmlMimeType = "application/vnd.google-earth.kml+xml";
     private boolean kmlFolderUseDefault = true;
@@ -136,12 +145,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     // Most Recently Used state files
     private final int MRU_ID_START = 10000;
     private final int MAX_MRU = 5;
-    private LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
+    private final LinkedHashMap<String, String> mruLinkedHashMap = new LinkedHashMap<String, String>(5, 1.0f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry eldest) {
             return size() > MAX_MRU;
         }
     };
+	private final HashMap<Integer, String> mruByMenuId = new HashMap<>();
 
     private final PrinterSimulator printerSimulator = new PrinterSimulator();
     private final PrinterSimulatorFragment fragmentPrinterSimulator = new PrinterSimulatorFragment();
@@ -152,20 +162,38 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        drawer = findViewById(R.id.drawer_layout);
+        setContentView(R.layout.activity_main);
+		drawer = findViewById(R.id.drawer_layout);
+	    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+		    ViewCompat.setOnApplyWindowInsetsListener(drawer, (v, windowInsets) -> {
+			    Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+			    ViewGroup.MarginLayoutParams mlp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+			    mlp.topMargin = insets.top;
+			    mlp.leftMargin = insets.left;
+			    mlp.bottomMargin = insets.bottom;
+			    mlp.rightMargin = insets.right;
+			    v.setLayoutParams(mlp);
+			    return WindowInsetsCompat.CONSUMED;
+		    });
+	    }
 
         navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+		navigationView.setNavigationItemSelectedListener(this);
 
-	    settings = EmuApplication.getSettings();
+		settings = EmuApplication.getSettings();
 	    settings.setIsDefaultSettings(true);
 
-	    vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+	    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+		    vibrator = ((VibratorManager)getSystemService(Context.VIBRATOR_MANAGER_SERVICE)).getDefaultVibrator();
+	    } else {
+		    // Deprecated in API 31
+		    vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+	    }
 
         ViewGroup mainScreenContainer = findViewById(R.id.main_screen_container);
         mainScreenView = new MainScreenView(this);
+	    mainScreenView.setId(R.id.main_screen_view);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             mainScreenView.setStatusBarColor(getWindow().getStatusBarColor());
         mainScreenContainer.addView(mainScreenView, 0, new ViewGroup.LayoutParams(
@@ -236,10 +264,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             }
         }
 
-        if(documentToOpenUrl != null && documentToOpenUrl.length() > 0)
+        if(documentToOpenUrl != null && !documentToOpenUrl.isEmpty())
             try {
             	// FileOpen auto-open.
                 onFileOpen(documentToOpenUrl, intent, null);
+            } catch (SecurityException e) {
+	            showAlert(getString(R.string.message_open_security_open_last_document), true);
+	            if(debug && e.getMessage() != null) Log.e(TAG, e.getMessage());
             } catch (Exception e) {
                 if(debug && e.getMessage() != null) Log.e(TAG, e.getMessage());
             }
@@ -256,42 +287,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if (recentsSubMenu != null)
                 recentsSubMenu.clear();
         }
+	    mruByMenuId.clear();
         if (recentsSubMenu != null) {
             Set<String> mruLinkedHashMapKeySet = mruLinkedHashMap.keySet();
             String[] mrus = mruLinkedHashMapKeySet.toArray(new String[0]);
             for (int i = mrus.length - 1; i >= 0; i--) {
             	String mostRecentlyUsedFile = mrus[i];
                 String displayName = getFilenameFromURL(mostRecentlyUsedFile);
-                if(displayName == null || displayName.equals("") || displayName.equals(mostRecentlyUsedFile)) {
+                if(displayName == null || displayName.isEmpty() || displayName.equals(mostRecentlyUsedFile)) {
                 	// We should remove this file because it seems impossible to get the display name of this Most Recently Used state file.
 	                // It might be deleted or the permissions does not allow to reach it anymore.
 	                mruLinkedHashMap.remove(mostRecentlyUsedFile);
-                } else
-	                recentsSubMenu.add(Menu.NONE, MRU_ID_START + i, Menu.NONE, displayName);
+                } else {
+                	int menuId = MRU_ID_START + i;
+	                mruByMenuId.put(menuId, mostRecentlyUsedFile);
+	                recentsSubMenu.add(Menu.NONE, menuId, Menu.NONE, displayName);
+                }
             }
         }
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    @Override
     protected void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    protected void onStop() {
-    	if(saveWhenLaunchingActivity) {
+    	// Following the Activity lifecycle (https://developer.android.com/reference/android/app/Activity),
+	    // the data must be saved in the onPause() event instead of onStop() simply because the onStop
+	    // method is killable and may lead to the data half saved!
+	    if(saveWhenLaunchingActivity) {
 		    settings.putStringSet("MRU", mruLinkedHashMap.keySet());
 		    if (lcdOverlappingView != null)
 			    lcdOverlappingView.saveViewLayout();
 
 		    if (NativeLib.isDocumentAvailable() && settings.getBoolean("settings_autosave", true)) {
 			    String currentFilename = NativeLib.getCurrentFilename();
-			    if (currentFilename != null && currentFilename.length() > 0)
+			    if (currentFilename != null && !currentFilename.isEmpty())
 				    onFileSave();
 		    }
 
@@ -300,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    clearFolderCache();
 	    }
 
-        super.onStop();
+        super.onPause();
     }
 
     @Override
@@ -382,10 +410,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             OnBackupDelete();
         } else if (id == R.id.nav_change_kml_script) {
             OnViewScript();
+        } else if (id == R.id.nav_show_kml_script_compilation_result) {
+            showKMLLogForce();
 //        } else if (id == R.id.nav_show_printer) {
 //            OnViewPrinter();
 //        } else if (id == R.id.nav_create_ram_card) {
 //            OnCreateRAMCard();
+//        } else if (id == R.id.nav_manage_flash_rom) {
+//	        OnManageFlashROM();
         } else if (id == R.id.nav_macro_record) {
             OnMacroRecord();
         } else if (id == R.id.nav_macro_play) {
@@ -397,20 +429,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.nav_about) {
             OnAbout();
         } else if(id >= MRU_ID_START && id < MRU_ID_START + MAX_MRU) {
+	        String url = mruByMenuId.get(id);
+			if(url != null) {
+				// Increase the file usage count
+				mruLinkedHashMap.get(url);
 
-            Set<String> mruLinkedHashMapKeySet = mruLinkedHashMap.keySet();
-            int mruLength = mruLinkedHashMapKeySet.size();
-            String[] mrus = mruLinkedHashMapKeySet.toArray(new String[mruLength]);
-
-            int mruClickedIndex = id - MRU_ID_START;
-            String url = mrus[mruClickedIndex];
-            mruLinkedHashMap.get(url);
-
-            ensureDocumentSaved(() -> {
-	            // FileOpen from MRU.
-				onFileOpen(url, null, null);
-            });
-
+				ensureDocumentSaved(() -> {
+					// FileOpen from MRU.
+					onFileOpen(url, null, null);
+				});
+			}
         }
 
         drawer.closeDrawer(GravityCompat.START);
@@ -449,6 +477,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         menu.findItem(R.id.nav_backup_restore).setEnabled(uRun && isBackup);
         menu.findItem(R.id.nav_backup_delete).setEnabled(uRun && isBackup);
         menu.findItem(R.id.nav_change_kml_script).setEnabled(uRun);
+        menu.findItem(R.id.nav_show_kml_script_compilation_result).setEnabled(uRun);
         menu.findItem(R.id.nav_macro_record).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
         menu.findItem(R.id.nav_macro_play).setEnabled(uRun && nMacroState == 0 /* MACRO_OFF */);
         menu.findItem(R.id.nav_macro_stop).setEnabled(uRun && nMacroState != 0 /* MACRO_OFF */);
@@ -829,8 +858,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
     private void OnObjectSave() {
         int model = NativeLib.getCurrentModel();
-        if(model == 'N' // HP32SII # Nardo
-        || model == 'D') { // HP42S # Davinci
+        if(model == 'L'     // HP32S    # Leonardo
+		|| model == 'N'     // HP32SII  # Nardo
+        || model == 'D') {  // HP42S    # Davinci
             final String[] objectsToSave = NativeLib.getObjectsToSave();
             objectsToSaveItemChecked = new boolean[objectsToSave.length];
             new AlertDialog.Builder(MainActivity.this)
@@ -840,7 +870,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         SaveObject();
                     }).setNegativeButton("Cancel", (dialog, id) -> objectsToSaveItemChecked = null).show();
         } else
-            SaveObject();
+            SaveObject(); // Others calculators
     }
     
     private void OnViewCopyFullscreen() {
@@ -854,14 +884,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
             bitmapScreen.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
             fileOutputStream.close();
-            String mimeType = "application/png";
-            Intent intent = new Intent(android.content.Intent.ACTION_SEND);
-            intent.setType(mimeType);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(Intent.EXTRA_SUBJECT, R.string.message_screenshot);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
-            startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
+
+	        String subject = getString(R.string.message_screenshot);
+	        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+	        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+	        intent.putExtra(Intent.EXTRA_TITLE, subject);
+	        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+	        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
+	        intent.setType("image/png");
+//	        intent.setDataAndType(FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile), "image/png");
+	        startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(e.getMessage());
@@ -882,14 +915,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             FileOutputStream fileOutputStream = new FileOutputStream(imageFile);
             bitmapScreen.compress(Bitmap.CompressFormat.PNG, 90, fileOutputStream);
             fileOutputStream.close();
-            String mimeType = "application/png";
-            Intent intent = new Intent(android.content.Intent.ACTION_SEND);
-            intent.setType(mimeType);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            intent.putExtra(Intent.EXTRA_SUBJECT, R.string.message_screenshot);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
-            startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
+
+	        String subject = getString(R.string.message_screenshot);
+	        Intent intent = new Intent(android.content.Intent.ACTION_SEND);
+	        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+	        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+	        intent.putExtra(Intent.EXTRA_TITLE, subject);
+	        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+	        intent.putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile));
+	        intent.setType("image/png");
+//	        intent.setDataAndType(FileProvider.getUriForFile(this,this.getPackageName() + ".provider", imageFile), "image/png");
+	        startActivity(Intent.createChooser(intent, getString(R.string.message_share_screenshot)));
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(e.getMessage());
@@ -953,7 +989,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else
             kmlScriptsForCurrentModel = kmlScripts;
 
-        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && getPackageName().contains("org.emulator.forty.eight");
+        boolean showDefaultKMLScriptFolderItem = !kmlFolderUseDefault && (
+            getPackageName().contains("org.emulator.forty.eight")
+	        || getPackageName().contains("org.emulator.forty.two")
+	        || getPackageName().contains("org.emulator.twenty.eight"));
         int lastIndex = kmlScriptsForCurrentModel.size();
         String[] kmlScriptTitles = new String[lastIndex + (showDefaultKMLScriptFolderItem ? 2 : 1)];
         for (int i = 0; i < kmlScriptsForCurrentModel.size(); i++)
@@ -962,7 +1001,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if(showDefaultKMLScriptFolderItem)
             kmlScriptTitles[lastIndex + 1] = getResources().getString(R.string.load_default_kml);
         new AlertDialog.Builder(MainActivity.this)
-                .setTitle(getResources().getString(R.string.pick_calculator))
+                .setTitle(getResources().getString(kmlFolderUseDefault ? R.string.pick_default_calculator : R.string.pick_custom_calculator))
                 .setItems(kmlScriptTitles, (dialog, which) -> {
                     if(which == lastIndex) {
                     	// [Select a Custom KML script folder...]
@@ -988,9 +1027,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     	// We choose a calculator name from the list.
 	                    KMLScriptItem scriptItem = kmlScriptsForCurrentModel.get(which);
                         if(changeKML) {
-                        	// We only change the KML script here.
+                        	// Optionally load the flash ROM for HP49
+	                        updateFromPreferences("settings_flash_port2", true);
+	                        // We only change the KML script here.
                             int result = NativeLib.onViewScript(scriptItem.filename, scriptItem.folder);
                             if(result > 0) {
+	                            settings.putString("settings_kml_folder_embedded", scriptItem.folder);
                                 displayKMLTitle();
                                 showKMLLog();
                             } else
@@ -1049,6 +1091,86 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 }).show();
     }
 
+	private void OnManageFlashROM() {
+    	//TODO Before loading a new flash, save the current flash ROM by closing the current Document and then opening it again!
+		//  -> IT IS POSSIBLE WITH UNMAPROM/MAPROM
+		//      -> Already done for Create because an unmap is done before (in KillKML)
+		//      -> Already done for Load because an unmap is done before (in KillKML)
+		//      -> Already done for Load because an unmap is done before (in KillKML)
+		//    For Close OK
+		//    For Save / Save As... ?
+    	String currentFlashPort2Url =  settings.getString("settings_flash_port2", null);
+		AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+		LayoutInflater inflater = this.getLayoutInflater();
+		View dialogView = inflater.inflate(R.layout.alert_manage_flash_rom, null);
+		Button buttonFlashROMCreate = dialogView.findViewById(R.id.buttonFlashROMCreate);
+		Button buttonFlashROMLoad = dialogView.findViewById(R.id.buttonFlashROMLoad);
+		Button buttonFlashROMReset = dialogView.findViewById(R.id.buttonFlashROMReset);
+		Button buttonFlashROMCancel = dialogView.findViewById(R.id.buttonFlashROMCancel);
+		dialogBuilder.setView(dialogView);
+		dialogBuilder.setTitle(getResources().getString(R.string.nav_manage_flash_rom));
+		AlertDialog alertDialog = dialogBuilder.show();
+		buttonFlashROMCreate.setOnClickListener(v -> {
+			// Save the current Flash ROM
+			Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+			intent.addCategory(Intent.CATEGORY_OPENABLE);
+			intent.setType("*/*");
+			intent.putExtra(Intent.EXTRA_TITLE, "FlashROM.49g");
+			saveWhenLaunchingActivity = false;
+			startActivityForResult(intent, INTENT_CREATE_FLASH_ROM);
+			alertDialog.dismiss();
+		});
+		buttonFlashROMLoad.setOnClickListener(v -> {
+			Runnable flashROMLoad = () -> {
+				// Load a Flash ROM
+				Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+				intent.addCategory(Intent.CATEGORY_OPENABLE);
+				intent.setType("*/*");
+				intent.putExtra(Intent.EXTRA_TITLE, "rom.49g");
+				saveWhenLaunchingActivity = false;
+				startActivityForResult(intent, INTENT_LOAD_FLASH_ROM);
+			};
+			if(currentFlashPort2Url != null && !currentFlashPort2Url.isEmpty())
+				new AlertDialog.Builder(this)
+						.setTitle(getString(R.string.alert_losing_flash_rom_title))
+						.setMessage(getString(R.string.alert_losing_flash_rom_message))
+						.setPositiveButton(android.R.string.yes, (dialog, which) -> flashROMLoad.run())
+						.setNegativeButton(android.R.string.no, (dialog, which) -> {})
+						.show();
+			else
+				flashROMLoad.run();
+			alertDialog.dismiss();
+		});
+		buttonFlashROMReset.setOnClickListener(v -> {
+			resetToDefaultKMLFlashROM();
+			alertDialog.dismiss();
+		});
+		buttonFlashROMCancel.setOnClickListener(v -> {
+			// Cancel the alert dialog.
+			alertDialog.dismiss();
+		});
+	}
+
+	private void resetToDefaultKMLFlashROM() {
+		// Reset to default Flash ROM from the KML file
+		settings.putString("settings_flash_port2", null);
+		String kmlFilename = NativeLib.getCurrentKml();
+		if(!kmlFilename.isEmpty()) {
+			String kmlFolder = kmlFolderURL == null || kmlFolderURL.isEmpty() ? null : kmlFolderURL;
+			// Reset the flashROM
+			NativeLib.onLoadFlashROM("");
+			// Load the KML file again. TODO If it goes wrong, we are lost.
+			int result = NativeLib.onViewScript(kmlFilename, kmlFolder);
+			if (result > 0) {
+				displayKMLTitle();
+				displayFilename(NativeLib.getCurrentFilename());
+				//showKMLLog();
+			} else
+				showKMLLogForce();
+			updateNavigationDrawerItems();
+		}
+	}
+
     private void OnMacroRecord() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -1101,9 +1223,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         if (NativeLib.onFileSaveAs(url) != 0) {
                         	settings.saveInStateFile(this, url);
 
+	                        // Save and reload the flash ROM!
+	                        updateFromPreferences("settings_flash_port2", true);
                             displayFilename(url);
+	                        String settingsFlashPort2Url = settings.getString("settings_flash_port2", null);
+                            if(settingsFlashPort2Url != null && !settingsFlashPort2Url.isEmpty())
+	                            showAlert(String.format(Locale.US, getString(R.string.message_state_and_flash_saved), getFilenameFromURL(url), getFilenameFromURL(settingsFlashPort2Url)));
+                            else
+		                        showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(url)));
 
-							showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(url)));
 	                        saveLastDocument(url);
 	                        Utils.makeUriPersistable(this, data, uri);
                             if (fileSaveAsCallback != null)
@@ -1122,6 +1250,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         objectsToSaveItemChecked = null;
                         break;
                     }
+	                case INTENT_PORT2LOAD: {
+		                if(debug) Log.d(TAG, "onActivityResult INTENT_PORT2LOAD " + url);
+		                //TODO Duplicate code in SettingsFragment!
+		                settings.putString("settings_port2load", url);
+		                Utils.makeUriPersistable(this, data, uri);
+
+		                if(urlToOpenInIntentPort2Load != null) {
+			                onFileOpenNative(urlToOpenInIntentPort2Load, kmlScriptFolderInIntentPort2Load);
+			                urlToOpenInIntentPort2Load = null;
+			                kmlScriptFolderInIntentPort2Load = null;
+		                }
+		                break;
+	                }
                     case INTENT_PICK_KML_FOLDER_FOR_NEW_FILE:
                     case INTENT_PICK_KML_FOLDER_FOR_CHANGING:
                     case INTENT_PICK_KML_FOLDER_FOR_SECURITY:
@@ -1188,17 +1329,172 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         updateNavigationDrawerItems();
                         break;
                     }
-                    default:
+	                case INTENT_CREATE_FLASH_ROM: {
+		                if(debug) Log.d(TAG, "onActivityResult INTENT_CREATE_FLASH_ROM " + url);
+		                // Not possible to save the current FlashROM :-( [NativeLib.onSaveFlashROM(url);]
+		                // So, we are going to create a new one from the ROM loaded by the current KML script!
+		                String kmlFilename = NativeLib.getCurrentKml();
+		                if(kmlFilename != null && !kmlFilename.isEmpty()) {
+		                	if(kmlFolderURL != null && !kmlFolderURL.isEmpty())
+				                copyROMFromFolder(kmlFilename, uri);
+			                else
+				                copyROMFromAsset(kmlFilename, uri);
+		                }
+
+		                new AlertDialog.Builder(this)
+				                .setTitle(getString(R.string.alert_load_new_flash_rom_title))
+				                .setPositiveButton(R.string.message_yes, (dialog, which) ->
+				                    loadFlashROM(uri, data))
+				                .setNegativeButton(R.string.message_no, (dialog, which) -> {})
+				                .show();
+		                break;
+	                }
+	                case INTENT_LOAD_FLASH_ROM: {
+		                if(debug) Log.d(TAG, "onActivityResult INTENT_LOAD_FLASH_ROM " + url);
+		                loadFlashROM(uri, data);
+		                break;
+	                }
+	                default:
                         break;
                 }
             }
+        } else {
+	        // resultCode == Activity.RESULT_CANCELED
+	        urlToOpenInIntentPort2Load = null;
+	        kmlScriptFolderInIntentPort2Load = null;
         }
 	    saveWhenLaunchingActivity = true;
         fileSaveAsCallback = null;
 	    super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void saveLastDocument(String url) {
+	private void loadFlashROM(Uri uri, Intent intent) {
+    	String url = uri != null ? uri.toString() : "";
+		if(NativeLib.onLoadFlashROM(url)) {
+			if (intent != null)
+				Utils.makeUriPersistable(this, intent, uri);
+			settings.putString("settings_flash_port2", url);
+		} else {
+			// The load failed, reset to the default Flash ROM
+			new AlertDialog.Builder(this)
+					.setTitle(getString(R.string.alert_load_flash_rom_error_title))
+					.setMessage(getString(R.string.alert_load_flash_rom_error_message))
+					.setPositiveButton(android.R.string.ok, (dialog, which) -> {})
+					.show();
+
+			resetToDefaultKMLFlashROM();
+		}
+		displayFilename(NativeLib.getCurrentFilename());
+	}
+
+	private String extractROMFilename(InputStream inputStream) {
+	    String romFilename = null;
+	    if(inputStream != null) {
+		    try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+			    // do reading, usually loop until end of file reading
+			    Pattern patternGlobalROM = Pattern.compile("\\s*Rom\\s+\"(.*)\"");
+			    String mLine;
+			    boolean inGlobal = false;
+			    while ((mLine = reader.readLine()) != null) {
+				    //process line
+				    if (mLine.indexOf("Global") == 0) {
+					    inGlobal = true;
+					    romFilename = null;
+					    continue;
+				    }
+				    if (inGlobal) {
+					    if (mLine.indexOf("End") == 0) {
+						    break;
+					    }
+					    Matcher m = patternGlobalROM.matcher(mLine);
+					    if (m.find()) {
+						    romFilename = m.group(1);
+						    break;
+					    }
+				    }
+			    }
+		    } catch (IOException e) {
+			    //log the exception
+			    e.printStackTrace();
+		    }
+		    //log the exception
+	    }
+	    return romFilename;
+    }
+
+	private void copyROMFromFolder(String kmlFilename, Uri uri) {
+		Uri kmlFolderUri = Uri.parse(kmlFolderURL);
+		DocumentFile kmlFolderDocumentFile = DocumentFile.fromTreeUri(this, kmlFolderUri);
+		if(kmlFolderDocumentFile != null) {
+			String romFilename = null;
+			for (DocumentFile file : kmlFolderDocumentFile.listFiles()) {
+				String name = file.getName();
+				if (name != null && kmlFilename.contains(name)) {
+					try {
+						DocumentFile documentFile = DocumentFile.fromSingleUri(this, file.getUri());
+						if (documentFile != null) {
+							Uri fileUri = documentFile.getUri();
+							romFilename = extractROMFilename(getContentResolver().openInputStream(fileUri));
+							break;
+						}
+					} catch (IOException e) {
+						//log the exception
+						e.printStackTrace();
+					}
+				}
+			}
+			if(romFilename != null && !romFilename.isEmpty()) {
+				ParcelFileDescriptor pfdROM = openFileInFolderFromContentResolverPFD(romFilename, kmlFolderURL, GENERIC_READ);
+				if(pfdROM != null) {
+					try {
+						InputStream romInputStream = new FileInputStream(pfdROM.getFileDescriptor());
+						copyROMtoFlashROM(romInputStream, uri);
+					} catch (IOException e) {
+						e.printStackTrace();
+					} finally {
+						try {
+							pfdROM.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private void copyROMFromAsset(String kmlFilename, Uri uri) {
+		AssetManager assetManager = getAssets();
+		InputStream kmlInputStream;
+		try {
+			kmlInputStream = assetManager.open("calculators/" + kmlFilename);
+			String romFilename = extractROMFilename(kmlInputStream);
+			if(romFilename != null && !romFilename.isEmpty()) {
+				InputStream romInputStream = assetManager.open("calculators/" + romFilename);
+				copyROMtoFlashROM(romInputStream, uri);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void copyROMtoFlashROM(InputStream romInputStream, Uri uri) throws IOException {
+		ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
+		if (pfd != null) {
+			OutputStream flashROMOutputStream = new FileOutputStream(pfd.getFileDescriptor());
+			byte[] buffer = new byte[1024 * 1024];
+			int length;
+			while ((length = romInputStream.read(buffer)) > 0) {
+				flashROMOutputStream.write(buffer, 0, length);
+			}
+			flashROMOutputStream.flush();
+			flashROMOutputStream.close();
+			romInputStream.close();
+			pfd.close();
+		}
+	}
+
+	private void saveLastDocument(String url) {
 	    settings.putString("lastDocument", url);
 
         if(url != null && !url.isEmpty())
@@ -1221,7 +1517,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 	private void migrateDeprecatedSettings() {
-		if(settings.hasValue("settings_haptic_feedback")) {
+		if(!settings.hasValue("settings_haptic_feedback_duration") && settings.hasValue("settings_haptic_feedback")) {
 			settings.removeValue("settings_haptic_feedback");
 			settings.putInt("settings_haptic_feedback_duration", 25);
 		}
@@ -1258,8 +1554,53 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    // Change the default KMLFolder to allow getFirstKMLFilenameForType() to find in the specific folder!
 		    Uri kmlFolderUri = Uri.parse(kmlScriptFolder);
 		    DocumentFile kmlFolderDocumentFile = DocumentFile.fromTreeUri(this, kmlFolderUri);
-		    if(kmlFolderDocumentFile != null && kmlFolderDocumentFile.exists())
-		    	changeKMLFolder(kmlScriptFolder);
+		    if(kmlFolderDocumentFile != null) {
+			    // Check the permission of the folder kmlScriptFolder
+			    if (!kmlFolderDocumentFile.canRead()) {
+				    // Permission denied, switch to the default asset folder
+				    changeKMLFolder(null);
+				    kmlScriptFolder = null;
+				    showAlert(getString(R.string.message_open_kml_folder_permission_lost), true);
+			    } else if (kmlFolderDocumentFile.exists())
+				    changeKMLFolder(kmlScriptFolder);
+		    } else {
+		    	// We are using the API < 21, so we
+			    changeKMLFolder(null);
+			    kmlScriptFolder = null;
+		    }
+	    }
+
+	    if(getPackageName().contains("org.emulator.forty.eight") && settings.getBoolean("settings_port2en", false)) {
+		    // Check if the access to the port2 shared file is still possible.
+		    String port2Url = settings.getString("settings_port2load", "");
+		    if(port2Url != null && !port2Url.isEmpty()) {
+			    Uri port2Uri = Uri.parse(port2Url);
+			    DocumentFile port2DocumentFile = DocumentFile.fromSingleUri(this, port2Uri);
+			    if (port2DocumentFile == null || !port2DocumentFile.exists()) {
+				    String port2Filename = getFilenameFromURL(port2Url);
+				    String finalKmlScriptFolder = kmlScriptFolder;
+				    new AlertDialog.Builder(this)
+					    .setTitle(getString(R.string.message_open_port2_file_not_found))
+					    .setMessage(String.format(Locale.US, getString(R.string.message_open_port2_file_not_found_description), port2Filename))
+					    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+
+						    urlToOpenInIntentPort2Load = url;
+						    kmlScriptFolderInIntentPort2Load = finalKmlScriptFolder;
+
+						    Intent intentPort2 = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+						    intentPort2.addCategory(Intent.CATEGORY_OPENABLE);
+						    intentPort2.setType("*/*");
+						    intentPort2.putExtra(Intent.EXTRA_TITLE, "shared.bin");
+						    saveWhenLaunchingActivity = false;
+						    startActivityForResult(intentPort2, MainActivity.INTENT_PORT2LOAD);
+					    }).setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+					    	// Deactivate the port2 because it is not reachable.
+					        settings.putBoolean("settings_port2en", false);
+						    onFileOpenNative(url, finalKmlScriptFolder);
+			            }).show();
+				    return;
+			    }
+		    }
 	    }
 
 	    onFileOpenNative(url, kmlScriptFolder);
@@ -1276,7 +1617,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 	        setPort1Settings(NativeLib.getPort1Plugged(), NativeLib.getPort1Writable());
 			// State file successfully opened.
 			String currentKml = NativeLib.getCurrentKml();
-		    if(kmlScriptFolder == null || currentKml.startsWith("document:")) {
+			if(kmlScriptFolder == null || currentKml.startsWith("document:")) {
 			    // Needed for compatibility:
 			    // The KML folder is not in the JSON settings embedded in the state file,
 			    // so, we need to extract it and change the variable szCurrentKml.
@@ -1350,14 +1691,23 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		if (NativeLib.onFileSave() == 1) {
 			String currentFilenameUrl = NativeLib.getCurrentFilename();
 			settings.saveInStateFile(this, currentFilenameUrl);
-			String currentFilename = getFilenameFromURL(currentFilenameUrl);
-			showAlert(String.format(Locale.US, getString(R.string.message_state_saved), currentFilename));
+
+			// Save and reload the flash ROM!
+			updateFromPreferences("settings_flash_port2", true);
+
+			String settingsFlashPort2Url = settings.getString("settings_flash_port2", null);
+			if(settingsFlashPort2Url != null && !settingsFlashPort2Url.isEmpty())
+				showAlert(String.format(Locale.US, getString(R.string.message_state_and_flash_saved), getFilenameFromURL(currentFilenameUrl), getFilenameFromURL(settingsFlashPort2Url)));
+			else
+				showAlert(String.format(Locale.US, getString(R.string.message_state_saved), getFilenameFromURL(currentFilenameUrl)));
 		}
 	}
 
     private void displayFilename(String stateFileURL) {
         String displayName = getFilenameFromURL(stateFileURL == null ? "" : stateFileURL);
-
+	    String port2FileURL = settings.getString("settings_flash_port2", null);
+        if(port2FileURL != null && !port2FileURL.isEmpty())
+	        displayName += " " + getFilenameFromURL(port2FileURL);
         View headerView = displayKMLTitle();
         if(headerView != null) {
             TextView textViewSubtitle = headerView.findViewById(R.id.nav_header_subtitle);
@@ -1423,12 +1773,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     // Method used from JNI!
 
 	@SuppressWarnings("UnusedDeclaration")
-    public int updateCallback(int type, int param1, int param2, String param3, String param4) {
+	public int updateCallback(int type, int param1, int param2) {
 
-        mainScreenView.updateCallback(type, param1, param2, param3, param4);
-        return -1;
-    }
-
+		mainScreenView.updateCallback(type, param1, param2);
+		return -1;
+	}
 
     final int GENERIC_READ   = 1;
     final int GENERIC_WRITE  = 2;
@@ -1505,6 +1854,43 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         return -1;
     }
+
+	public ParcelFileDescriptor openFileFromContentResolverPFD(String fileURL, int writeAccess) {
+		//https://stackoverflow.com/a/31677287
+		Uri uri = Uri.parse(fileURL);
+		ParcelFileDescriptor filePfd;
+		try {
+			String mode = "";
+			if((writeAccess & GENERIC_READ) == GENERIC_READ)
+				mode += "r";
+			if((writeAccess & GENERIC_WRITE) == GENERIC_WRITE)
+				mode += "w";
+			filePfd = getContentResolver().openFileDescriptor(uri, mode);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+		return filePfd;
+	}
+	public ParcelFileDescriptor openFileInFolderFromContentResolverPFD(String filename, String folderURL, int writeAccess) {
+		if(filename != null) {
+			if(filename.startsWith("content://"))
+				return openFileFromContentResolverPFD(filename, writeAccess);
+			if (folderURLCached == null || !folderURLCached.equals(folderURL)) {
+				folderURLCached = folderURL;
+				folderCache.clear();
+				Uri folderURI = Uri.parse(folderURL);
+				DocumentFile folderDocumentFile = DocumentFile.fromTreeUri(this, folderURI);
+				if (folderDocumentFile != null)
+					for (DocumentFile file : folderDocumentFile.listFiles())
+						folderCache.put(file.getName(), file.getUri().toString());
+			}
+			String filenameUrl = folderCache.get(filename);
+			if (filenameUrl != null)
+				return openFileFromContentResolverPFD(filenameUrl, writeAccess);
+		}
+		return null;
+	}
 
 	public void showAlert(String text) {
 		showAlert(text, false);
@@ -1588,6 +1974,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 break;
             case 26: // TOOL_MACRO_SETTINGS
                 break;
+	        case 201: // Custom: CUSTOM_PIXEL_BORDER_ON
+		        settings.putBoolean("settings_lcd_pixel_borders", true);
+		        updateFromPreferences("settings_lcd_pixel_borders", true);
+		        break;
+	        case 202: // Custom: CUSTOM_PIXEL_BORDER_OFF
+		        settings.putBoolean("settings_lcd_pixel_borders", false);
+		        updateFromPreferences("settings_lcd_pixel_borders", true);
+		        break;
+	        case 203: // Custom: CUSTOM_PIXEL_BORDER_TOGGLE
+		        boolean usePixelBorders = settings.getBoolean("settings_lcd_pixel_borders", false);
+				settings.putBoolean("settings_lcd_pixel_borders", !usePixelBorders);
+		        updateFromPreferences("settings_lcd_pixel_borders", true);
+		        break;
             default:
                 break;
         }
@@ -1601,7 +2000,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 		    for (int i = 0; i < kmlScripts.size(); i++) {
 			    KMLScriptItem kmlScriptItem = kmlScripts.get(i);
 			    if (kmlScriptItem.model.charAt(0) == chipsetType) {
-				    showAlert(String.format(Locale.US, "Existing KML script not found. Trying the compatible script: %s", kmlScriptItem.filename), true);
+				    showAlert(String.format(Locale.US, getString(R.string.message_open_kml_not_found_alert_trying_other1), kmlScriptItem.filename), true);
 				    NativeLib.setCurrentKml(kmlScriptItem.filename);
 				    NativeLib.setEmuDirectory(kmlFolderURL);
 				    return 1;
@@ -1618,13 +2017,13 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         for (int i = 0; i < kmlScripts.size(); i++) {
             KMLScriptItem kmlScriptItem = kmlScripts.get(i);
             if (kmlScriptItem.model.charAt(0) == chipsetType) {
-	            showAlert(String.format(Locale.US, "Existing KML script not found. Trying the embedded and compatible script: %s", kmlScriptItem.filename), true);
+	            showAlert(String.format(Locale.US, getString(R.string.message_open_kml_not_found_alert_trying_other2), kmlScriptItem.filename), true);
 	            NativeLib.setCurrentKml(kmlScriptItem.filename);
 	            NativeLib.setEmuDirectory("assets/calculators/");
                 return 1;
             }
         }
-	    showAlert("Cannot find the KML template file, sorry.", true);
+        showAlert(getString(R.string.message_open_kml_not_found_alert), true);
         return 0;
     }
 
@@ -1699,7 +2098,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void setPort1Settings(boolean port1Plugged, boolean port1Writable) {
-    	if(this.getClass().getPackage().getName().equals("org.emulator.forty.eight")) {
+	    Package pack = this.getClass().getPackage();
+    	if(pack != null && pack.getName().equals("org.emulator.forty.eight")) {
 		    settings.putBoolean("settings_port1en", port1Plugged);
 		    settings.putBoolean("settings_port1wr", port1Writable);
 		    updateFromPreferences("settings_port1", true);
@@ -1715,14 +2115,16 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     "settings_background_kml_color", "settings_background_fallback_color",
 					"settings_printer_model", "settings_macro",
                     "settings_kml", "settings_port1", "settings_port2",
-                    "settings_flash_port2" };
+                    "settings_flash_port2",
+                    "settings_serial_ports_wire", "settings_serial_ports_ir" };
 			for (String settingKey : settingKeys)
                 updateFromPreferences(settingKey, false);
         } else {
             switch (key) {
                 case "settings_realspeed":
-                case "settings_grayscale":
-					NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
+	            case "settings_grayscale":
+	            case "settings_serial_slowdown":
+		            NativeLib.setConfiguration(key, isDynamicValue, settings.getBoolean(key, false) ? 1 : 0, 0, null);
                     break;
 
                 case "settings_rotation":
@@ -1735,9 +2137,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     mainScreenView.setRotationMode(rotationMode, isDynamic);
                     break;
                 case "settings_auto_layout":
-                    int autoLayoutMode = 2;
+					int autoLayoutMode = getPackageName().contains("org.emulator.forty.eight") ? 1 : 2;
                     try {
-						autoLayoutMode = Integer.parseInt(settings.getString("settings_auto_layout", "2"));
+						autoLayoutMode = Integer.parseInt(settings.getString("settings_auto_layout", String.valueOf(autoLayoutMode)));
                     } catch (NumberFormatException ex) {
                         // Catch bad number format
                     }
@@ -1763,11 +2165,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 case "settings_hide_bar":
                 case "settings_hide_bar_status":
                 case "settings_hide_bar_nav":
-					if (settings.getBoolean("settings_hide_bar_status", false)
-							|| settings.getBoolean("settings_hide_bar_nav", false))
-                        hideSystemUI();
-                    else
-                        showSystemUI();
+	                updateSystemUI();
                     break;
                 case "settings_hide_button_menu":
 					imageButtonMenu.setVisibility(settings.getBoolean("settings_hide_button_menu", false) ? View.GONE : View.VISIBLE);
@@ -1832,32 +2230,64 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 							settings.getBoolean("settings_port2wr", false) ? 1 : 0,
 							settings.getString("settings_port2load", ""));
                     break;
+	            case "settings_flash_port2":
+		            String settingsFlashPort2Url = settings.getString("settings_flash_port2", null);
+	            	if(settingsFlashPort2Url != null)
+			            loadFlashROM(Uri.parse(settingsFlashPort2Url), null);
+		            break;
+	            case "settings_serial_ports_wire":
+		            //NativeLib.setConfiguration("settings_serial_ports_wire", isDynamicValue, 0, 0,
+				    //        DevicesFragment.SerialConnectParameters.fromSettingsString(settings.getString("settings_serial_ports_wire", "")).toWin32String());
+	            	break;
+	            case "settings_serial_ports_ir":
+		            //NativeLib.setConfiguration("settings_serial_ports_ir", isDynamicValue, 0, 0,
+				    //        DevicesFragment.SerialConnectParameters.fromSettingsString(settings.getString("settings_serial_ports_ir", "")).toWin32String());
+		            break;
             }
         }
     }
 
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasFocus && (
-            settings.getBoolean("settings_hide_bar_status", false)
-            || settings.getBoolean("settings_hide_bar_nav", false)
-        )) {
-            hideSystemUI();
-        }
-    }
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		super.onWindowFocusChanged(hasFocus);
+		if (hasFocus) {
+			updateSystemUI();
+		}
+	}
 
-    private void hideSystemUI() {
-        int flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-        if(settings.getBoolean("settings_hide_bar_status", false))
-            flags |= View.SYSTEM_UI_FLAG_FULLSCREEN;
-        if(settings.getBoolean("settings_hide_bar_nav", false))
-            flags |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+	private void updateSystemUI() {
+		boolean hideBarStatus = settings.getBoolean("settings_hide_bar_status", false);
+		boolean hideBarNav = settings.getBoolean("settings_hide_bar_nav", false);
+		WindowInsetsControllerCompat windowInsetsController = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+		boolean isNightMode = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+		windowInsetsController.setAppearanceLightStatusBars(!isNightMode);
+		windowInsetsController.setAppearanceLightNavigationBars(!isNightMode);
 
-        getWindow().getDecorView().setSystemUiVisibility(flags);
-    }
-
-    private void showSystemUI() {
-        getWindow().getDecorView().setSystemUiVisibility(0);
-    }
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+			if(hideBarStatus && hideBarNav) {
+				windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
+			} else if(hideBarStatus) {
+				windowInsetsController.show(WindowInsetsCompat.Type.navigationBars());
+				windowInsetsController.hide(WindowInsetsCompat.Type.statusBars());
+			} else if(hideBarNav) {
+				windowInsetsController.show(WindowInsetsCompat.Type.statusBars());
+				windowInsetsController.hide(WindowInsetsCompat.Type.navigationBars());
+			} else {
+				windowInsetsController.show(WindowInsetsCompat.Type.systemBars());
+			}
+		} else {
+			int flags = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+			if(hideBarStatus && hideBarNav) {
+				flags |= View.SYSTEM_UI_FLAG_FULLSCREEN;
+				flags |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+			} else if(hideBarStatus) {
+				flags |= View.SYSTEM_UI_FLAG_FULLSCREEN;
+			} else if(hideBarNav) {
+				flags |= View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+			} else {
+				flags = 0;
+			}
+			getWindow().getDecorView().setSystemUiVisibility(flags);
+		}
+	}
 }

@@ -22,6 +22,7 @@ import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -305,7 +306,7 @@ public class PanAndScaleView extends View {
 			public boolean onDown(MotionEvent e) {
 				if(debug) Log.d(TAG, "onDown() actionIndex: " + e.getActionIndex() + ", X: " + e.getX() + ", Y: " + e.getY());
 				scroller.forceFinished(true);
-				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
+				PanAndScaleView.this.postInvalidateOnAnimation();
 				if(onTapDownListener != null) {
 					float scaleAndPanX = (e.getX() - viewPanOffsetX) / viewScaleFactorX;
 					float scaleAndPanY = (e.getY() - viewPanOffsetY) / viewScaleFactorY;
@@ -385,7 +386,7 @@ public class PanAndScaleView extends View {
 						(int)(velocityFactor * velocityX), (int)(velocityFactor * velocityY),
 						0, -(int)viewPanMinX,
 						0, -(int)viewPanMinY);
-				ViewCompat.postInvalidateOnAnimation(PanAndScaleView.this);
+				PanAndScaleView.this.postInvalidateOnAnimation();
 				return true;
 			}
 		});
@@ -615,7 +616,7 @@ public class PanAndScaleView extends View {
 
 
 	boolean osdAllowed = false;
-	Handler osdTimerHandler = new Handler();
+	Handler osdTimerHandler = new Handler(Looper.getMainLooper());
 	Runnable osdTimerRunnable = () -> {
 		// OSD should stop now!
 		osdAllowed = false;

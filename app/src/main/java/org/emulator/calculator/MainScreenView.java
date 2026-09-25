@@ -63,6 +63,7 @@ public class MainScreenView extends PanAndScaleView {
     public float defaultViewPanOffsetX = 0.0f;
     public float defaultViewPanOffsetY = 0.0f;
 
+//	private Rect invalidateRectangle = new Rect();
 
     public MainScreenView(Context context) {
         super(context);
@@ -192,11 +193,28 @@ public class MainScreenView extends PanAndScaleView {
         this.setFocusableInTouchMode(true);
     }
 
-    // Prevent accidental scroll when taping a calc button
+	private boolean previousRightMouseButtonStateDown = false;
+
+	// Prevent accidental scroll when taping a calc button
     protected Set<Integer> currentButtonTouched = new HashSet<>();
     @SuppressLint("ClickableViewAccessibility")
     public boolean onTouchEvent(MotionEvent event) {
-        int actionIndex = event.getActionIndex();
+	    if(event.getSource() == InputDevice.SOURCE_MOUSE) {
+	    	// Support the right mouse button click effect with Android version >= 5.0
+		    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+			    boolean rightMouseButtonStateDown = event.isButtonPressed(MotionEvent.BUTTON_SECONDARY);
+			    if(rightMouseButtonStateDown != previousRightMouseButtonStateDown) {
+				    // Right button pressed or released.
+				    previousRightMouseButtonStateDown = rightMouseButtonStateDown;
+				    if(!previousRightMouseButtonStateDown) {
+				    	// Allows pressing a calculator button but prevents its release to allow the On+A+F key combination.
+				        return true;
+				    }
+			    }
+		    }
+	    }
+
+	    int actionIndex = event.getActionIndex();
         int action = event.getActionMasked();
         switch (action) {
             case MotionEvent.ACTION_DOWN:
@@ -235,10 +253,10 @@ public class MainScreenView extends PanAndScaleView {
         return super.onTouchEvent(event);
     }
 
-    @Override
+	@Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
-        && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+        && ((event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) || event.getSource() == 0) {
         	if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
         		return false;
             char pressedKey = (char) event.getUnicodeChar();
@@ -259,7 +277,7 @@ public class MainScreenView extends PanAndScaleView {
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) == 0
-        && (event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) {
+        && ((event.getSource() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD) || event.getSource() == 0) {
 	        if(!event.isNumLockOn() && numpadKey.indexOf(keyCode) != -1)
 		        return false;
             char pressedKey = (char) event.getUnicodeChar();
@@ -389,6 +407,16 @@ public class MainScreenView extends PanAndScaleView {
 		// Copy the full calculator with antialiasing
 		canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
 
+//		synchronized (invalidateRectangle) {
+//			if (invalidateRectangle.isEmpty()) {
+//				canvas.drawColor(getBackgroundColor());
+//				canvas.drawBitmap(bitmapMainScreen, 0, 0, paintFullCalc);
+//			} else {
+//				canvas.drawBitmap(bitmapMainScreen, invalidateRectangle, invalidateRectangle, paintFullCalc);
+//				invalidateRectangle.setEmpty();
+//			}
+//		}
+
 		if(usePixelBorders) {
 			// Copy the LCD part only without antialiasing
 			int x = NativeLib.getScreenPositionX();
@@ -423,53 +451,84 @@ public class MainScreenView extends PanAndScaleView {
         }
     }
 
+
+	static float[] pointsBuffer = new float[0];
 	static void drawPixelBorder(Canvas canvas, int lcdWidthNative, int lcdHeightNative, float screenPositionX, float screenPositionY, float screenWidth, float screenHeight, Paint paintLCD) {
 		// Draw the LCD grid lines without antialiasing to emulate the genuine pixels borders
 		int lcdBackgroundColor = 0xFF000000 | NativeLib.getLCDBackgroundColor();
 		paintLCD.setColor(lcdBackgroundColor);
 		float stepX = screenWidth / lcdWidthNative;
+
+		// Optimized drawcalls
+		int pointBufferLength = (lcdWidthNative + lcdHeightNative) << 2;
+		if(pointsBuffer.length != pointBufferLength)
+			pointsBuffer = new float[pointBufferLength]; // Adjust the buffer of points
+
+		int pointsIndex = 0;
 		for (int x = 0; x < lcdWidthNative; x++) {
 			float screenX = screenPositionX + x * stepX;
-			canvas.drawLine(screenX, screenPositionY, screenX, screenPositionY + screenHeight, paintLCD);
+			pointsBuffer[pointsIndex++] = screenX;
+			pointsBuffer[pointsIndex++] = screenPositionY;
+			pointsBuffer[pointsIndex++] = screenX;
+			pointsBuffer[pointsIndex++] = screenPositionY + screenHeight;
 		}
 		float stepY = screenHeight / lcdHeightNative;
 		for (int y = 0; y < lcdHeightNative; y++) {
 			float screenY = screenPositionY + y * stepY;
-			canvas.drawLine(screenPositionX, screenY, screenPositionX + screenWidth, screenY, paintLCD);
+			pointsBuffer[pointsIndex++] = screenPositionX;
+			pointsBuffer[pointsIndex++] = screenY;
+			pointsBuffer[pointsIndex++] = screenPositionX + screenWidth;
+			pointsBuffer[pointsIndex++] = screenY;
 		}
+		canvas.drawLines(pointsBuffer, paintLCD);
 	}
 
-	public void updateCallback(int type, int param1, int param2, String param3, String param4) {
-        switch (type) {
-            case NativeLib.CALLBACK_TYPE_INVALIDATE:
-	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate()");
-                postInvalidate();
-	            if(this.onUpdateDisplayListener != null)
-		            this.onUpdateDisplayListener.run();
-	            break;
-            case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
-	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_WINDOW_RESIZE()");
-                // New Bitmap size
-                if(bitmapMainScreen == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
-                    if(debug) Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
-                    Bitmap  oldBitmapMainScreen = bitmapMainScreen;
-                    bitmapMainScreen = Bitmap.createBitmap(Math.max(1, param1), Math.max(1, param2), Bitmap.Config.ARGB_8888);
-                    int globalColor = NativeLib.getGlobalColor();
-                    kmlBackgroundColor = Color.argb(255, (globalColor & 0x00FF0000) >> 16, (globalColor & 0x0000FF00) >> 8, globalColor & 0x000000FF);
+	public void updateCallback(int type, int param1, int param2) {
+		try {
+			switch (type) {
+				case NativeLib.CALLBACK_TYPE_INVALIDATE:
+					//	            int left = param1 >> 16;
+					//	            int top = param1 & 0xFFFF;
+					//	            int right = param2 >> 16;
+					//	            int bottom = param2 & 0xFFFF;
+					//	            if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate() left: " + left + ", top: " + top + ", right: " + right + ", bottom: " + bottom);
+					//	            synchronized (invalidateRectangle) {
+					//		            invalidateRectangle.union(left, top, right, bottom);
+					//	            }
+					if (debug)
+						Log.d(TAG, "updateCallback() CALLBACK_TYPE_INVALIDATE postInvalidate()");
+					postInvalidate();
+					if (this.onUpdateDisplayListener != null)
+						this.onUpdateDisplayListener.run();
+					break;
+				case NativeLib.CALLBACK_TYPE_WINDOW_RESIZE:
+					if (debug) Log.d(TAG, "updateCallback() CALLBACK_TYPE_WINDOW_RESIZE()");
+					// New Bitmap size
+					if (bitmapMainScreen == null || bitmapMainScreen.getWidth() != param1 || bitmapMainScreen.getHeight() != param2) {
+						if (debug)
+							Log.d(TAG, "updateCallback() Bitmap.createBitmap(x: " + Math.max(1, param1) + ", y: " + Math.max(1, param2) + ")");
+						Bitmap oldBitmapMainScreen = bitmapMainScreen;
+						bitmapMainScreen = Bitmap.createBitmap(Math.max(1, param1), Math.max(1, param2), Bitmap.Config.ARGB_8888);
+						int globalColor = NativeLib.getGlobalColor();
+						kmlBackgroundColor = Color.argb(255, (globalColor & 0x00FF0000) >> 16, (globalColor & 0x0000FF00) >> 8, globalColor & 0x000000FF);
 
-                    bitmapMainScreen.eraseColor(getBackgroundColor());
-                    NativeLib.changeBitmap(bitmapMainScreen);
+						bitmapMainScreen.eraseColor(getBackgroundColor());
+						NativeLib.changeBitmap(bitmapMainScreen);
 
-                    if(oldBitmapMainScreen != null) {
-                        oldBitmapMainScreen.recycle();
-                    }
-                    firstTime = true;
-                    setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
-                    if(viewSized)
-                        updateLayout();
-                }
-                break;
-        }
+						if (oldBitmapMainScreen != null) {
+							oldBitmapMainScreen.recycle();
+						}
+						firstTime = true;
+						setVirtualSize(bitmapMainScreen.getWidth(), bitmapMainScreen.getHeight());
+						if (viewSized)
+							updateLayout();
+					}
+					break;
+			}
+		} catch (Exception ex) {
+			if (debug)
+				Log.d(TAG, "updateCallback() Exception: " + ex.toString());
+		}
     }
 
     public void setRotationMode(int rotationMode, boolean isDynamic) {

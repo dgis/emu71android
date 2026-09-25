@@ -21,6 +21,18 @@ cmake_minimum_required(VERSION 3.4.1)
 
 add_compile_options(-DEMUXX=71)
 
+add_compile_options(-fpermissive)
+add_compile_options(-Wno-error=incompatible-pointer-types)
+add_compile_options(-Wno-absolute-value)
+add_compile_options(-Wno-ignored-pragmas)
+add_compile_options(-Wno-incompatible-pointer-types)
+add_compile_options(-Wno-int-conversion)
+add_compile_options(-Wno-nonportable-include-path)
+add_compile_options(-Wno-pointer-bool-conversion)
+add_compile_options(-Wno-pointer-integer-compare)
+add_compile_options(-Wno-pointer-sign)
+add_compile_options(-Wno-return-type)
+add_compile_options(-Wno-unsequenced)
 
 if(CMAKE_BUILD_TYPE STREQUAL Release)
 	message("RELEASE BUILD")

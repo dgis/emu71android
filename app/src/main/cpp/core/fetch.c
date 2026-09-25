@@ -320,24 +320,6 @@ static JMPTAB o8A_[] =
 
 static JMPTAB o81B_[] =
 {
-#if 1										// 1LK7
-	(LPCVOID) o81B0,		F,				// normally o_invalid3, =RCKBp patch
-	(LPCVOID) o81B1,		F,				// normally o_invalid3, =BP+C patch
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F
-#else										// PC=A / PC=C / A=PC / C=PC / APCEX / CPCEX group
 	(LPCVOID) o_invalid4,	F,
 	(LPCVOID) o_invalid4,	F,
 	(LPCVOID) o81B2,		F,
@@ -354,7 +336,6 @@ static JMPTAB o81B_[] =
 	(LPCVOID) o_invalid4,	F,
 	(LPCVOID) o_invalid4,	F,
 	(LPCVOID) o_invalid4,	F
-#endif
 };
 
 static JMPTAB o81Af2_[] =
@@ -364,17 +345,17 @@ static JMPTAB o81Af2_[] =
 	(LPCVOID) o81Af22,		F,
 	(LPCVOID) o81Af23,		F,
 	(LPCVOID) o81Af24,		F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
+	(LPCVOID) o81Af21,		F,
+	(LPCVOID) o81Af22,		F,
+	(LPCVOID) o81Af23,		F,
 	(LPCVOID) o81Af28,		F,
 	(LPCVOID) o81Af29,		F,
 	(LPCVOID) o81Af2A,		F,
 	(LPCVOID) o81Af2B,		F,
 	(LPCVOID) o81Af2C,		F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F
+	(LPCVOID) o81Af29,		F,
+	(LPCVOID) o81Af2A,		F,
+	(LPCVOID) o81Af2B,		F
 };
 
 static JMPTAB o81Af1_[] =
@@ -384,17 +365,17 @@ static JMPTAB o81Af1_[] =
 	(LPCVOID) o81Af12,		F,
 	(LPCVOID) o81Af13,		F,
 	(LPCVOID) o81Af14,		F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
+	(LPCVOID) o81Af11,		F,
+	(LPCVOID) o81Af12,		F,
+	(LPCVOID) o81Af13,		F,
 	(LPCVOID) o81Af18,		F,
 	(LPCVOID) o81Af19,		F,
 	(LPCVOID) o81Af1A,		F,
 	(LPCVOID) o81Af1B,		F,
 	(LPCVOID) o81Af1C,		F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F
+	(LPCVOID) o81Af19,		F,
+	(LPCVOID) o81Af1A,		F,
+	(LPCVOID) o81Af1B,		F
 };
 
 static JMPTAB o81Af0_[] =
@@ -404,17 +385,17 @@ static JMPTAB o81Af0_[] =
 	(LPCVOID) o81Af02,		F,
 	(LPCVOID) o81Af03,		F,
 	(LPCVOID) o81Af04,		F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
+	(LPCVOID) o81Af01,		F,
+	(LPCVOID) o81Af02,		F,
+	(LPCVOID) o81Af03,		F,
 	(LPCVOID) o81Af08,		F,
 	(LPCVOID) o81Af09,		F,
 	(LPCVOID) o81Af0A,		F,
 	(LPCVOID) o81Af0B,		F,
 	(LPCVOID) o81Af0C,		F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F,
-	(LPCVOID) o_invalid6,	F
+	(LPCVOID) o81Af09,		F,
+	(LPCVOID) o81Af0A,		F,
+	(LPCVOID) o81Af0B,		F
 };
 
 static JMPTAB o81A_[] =
@@ -493,7 +474,8 @@ static JMPTAB o81_[] =
 	(LPCVOID) o_invalid3,	F,				// 1LK7
 //	(LPCVOID) o81A_,		4,				// r=ss.F fs / ss=r.F fs / rssEX.F fs group
 	(LPCVOID) o_invalid3,	F,				// 1LK7
-	(LPCVOID) o81B_,		3,
+//	(LPCVOID) o81B_,		3,				// PC=A / PC=C / A=PC / C=PC / APCEX / CPCEX group
+	(LPCVOID) o_invalid3,	F,				// 1LK7
 	(LPCVOID) o81C,			F,
 	(LPCVOID) o81D,			F,
 	(LPCVOID) o81E,			F,
@@ -659,17 +641,17 @@ static JMPTAB o12_[] =
 	(LPCVOID) o122,			F,
 	(LPCVOID) o123,			F,
 	(LPCVOID) o124,			F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
+	(LPCVOID) o121,			F,
+	(LPCVOID) o122,			F,
+	(LPCVOID) o123,			F,
 	(LPCVOID) o128,			F,
 	(LPCVOID) o129,			F,
 	(LPCVOID) o12A,			F,
 	(LPCVOID) o12B,			F,
 	(LPCVOID) o12C,			F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F
+	(LPCVOID) o129,			F,
+	(LPCVOID) o12A,			F,
+	(LPCVOID) o12B,			F
 };
 
 static JMPTAB o11_[] =
@@ -679,17 +661,17 @@ static JMPTAB o11_[] =
 	(LPCVOID) o112,			F,
 	(LPCVOID) o113,			F,
 	(LPCVOID) o114,			F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
+	(LPCVOID) o111,			F,
+	(LPCVOID) o112,			F,
+	(LPCVOID) o113,			F,
 	(LPCVOID) o118,			F,
 	(LPCVOID) o119,			F,
 	(LPCVOID) o11A,			F,
 	(LPCVOID) o11B,			F,
 	(LPCVOID) o11C,			F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F
+	(LPCVOID) o119,			F,
+	(LPCVOID) o11A,			F,
+	(LPCVOID) o11B,			F
 };
 
 static JMPTAB o10_[] =
@@ -699,17 +681,17 @@ static JMPTAB o10_[] =
 	(LPCVOID) o102,			F,
 	(LPCVOID) o103,			F,
 	(LPCVOID) o104,			F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
+	(LPCVOID) o101,			F,
+	(LPCVOID) o102,			F,
+	(LPCVOID) o103,			F,
 	(LPCVOID) o108,			F,
 	(LPCVOID) o109,			F,
 	(LPCVOID) o10A,			F,
 	(LPCVOID) o10B,			F,
 	(LPCVOID) o10C,			F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F,
-	(LPCVOID) o_invalid3,	F
+	(LPCVOID) o109,			F,
+	(LPCVOID) o10A,			F,
+	(LPCVOID) o10B,			F
 };
 
 static JMPTAB o1_[] =

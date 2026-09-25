@@ -66,6 +66,7 @@ public class NativeLib {
     public static native String[] getObjectsToSave();
     public static native int onObjectSave(String filename, boolean[] objectsToSaveItemChecked);
 	public static native void onViewCopy(Bitmap bitmapScreen);
+	public static native void onStackCopyVisible();
     public static native void onStackCopy();
     public static native void onStackPaste();
     public static native void onViewReset();
@@ -90,4 +91,9 @@ public class NativeLib {
     public static native int getScreenWidthNative();
 	public static native int getScreenHeightNative();
 	public static native int getLCDBackgroundColor();
+
+	static final int EV_RXCHAR = 0x0001;
+	static final int EV_TXEMPTY = 0x0004;
+	static final int EV_ERR = 0x0080;
+	public static native void commEvent(int commId, int eventMask);
 }

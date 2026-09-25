@@ -392,26 +392,23 @@ public class PortSettingsFragment extends AppCompatDialogFragment {
         if (debug) Log.d(TAG, "onContextItemSelected()");
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         int portModuleIndex = info.position;
-        switch(item.getItemId()) {
-            case R.id.contextual_menu_port_settings_delete:
-                configModuleDelete(nActPort, portModuleIndex);
+        int itemId = item.getItemId();
+        if (itemId == R.id.contextual_menu_port_settings_delete) {
+            configModuleDelete(nActPort, portModuleIndex);
+            ShowPortConfig(nActPort);
+            return true;
+        } else if (itemId == R.id.contextual_menu_port_settings_data_load) {
+            OnPortCfgDataLoad(portModuleIndex);
+        } else if (itemId == R.id.contextual_menu_port_settings_data_save) {
+            OnPortCfgDataSave(portModuleIndex);
+        } else if (itemId == R.id.contextual_menu_port_settings_tcpip_settings) {
+            OnEditTcpIpSettings(portModuleIndex, () -> {
+                // Modify the original data to avoid a configuration changed on the whole module
+                modifyOriginalTCPData(nActPort, portModuleIndex);
+
                 ShowPortConfig(nActPort);
-                return true;
-            case R.id.contextual_menu_port_settings_data_load:
-                OnPortCfgDataLoad(portModuleIndex);
-                break;
-            case R.id.contextual_menu_port_settings_data_save:
-                OnPortCfgDataSave(portModuleIndex);
-                break;
-            case R.id.contextual_menu_port_settings_tcpip_settings:
-                OnEditTcpIpSettings(portModuleIndex, () -> {
-                    // Modify the original data to avoid a configuration changed on the whole module
-                    modifyOriginalTCPData(nActPort, portModuleIndex);
 
-                    ShowPortConfig(nActPort);
-
-                });
-                break;
+            });
         }
         return super.onContextItemSelected(item);
     }

@@ -26,6 +26,12 @@
 	#endif
 #endif
 
+static __inline VOID SetNonBlockedIO(SOCKET s, unsigned long flag)
+{
+	VERIFY(ioctlsocket(s, FIONBIO, &flag) == 0);
+	return;
+}
+
 static BOOL TcpSendFrame(PTCPIP p, WORD wFrame)
 {
 	UINT uTry = 0;
@@ -40,6 +46,8 @@ static BOOL TcpSendFrame(PTCPIP p, WORD wFrame)
 
 		if (p->sClient == SOCKET_ERROR)		// not connected so far
 		{
+			BOOL bNonBlockedIO = (p->dwConnectTimeout < 0xFFFFFFFF);
+
 			#if defined IPv6_DUAL
 				// IPv4 / IPv6 implementation
 				CHAR cPortOut[16];
@@ -73,11 +81,41 @@ static BOOL TcpSendFrame(PTCPIP p, WORD wFrame)
 						int flag = 1;
 						VERIFY(setsockopt(p->sClient,IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(flag)) == 0);
 					}
+					// enable non-blocked IO connect
+					if (bNonBlockedIO)
+					{
+						SetNonBlockedIO(p->sClient,1U);
+					}
 					if (connect(p->sClient,psAI->ai_addr,(int) psAI->ai_addrlen) == SOCKET_ERROR)
 					{
-						closesocket(p->sClient);
-						p->sClient = SOCKET_ERROR;
-						continue;
+						BOOL bConnect = FALSE;
+
+						if (bNonBlockedIO && WSAEWOULDBLOCK == WSAGetLastError())
+						{
+							TIMEVAL timeout;
+							FD_SET  clientSockSet;
+
+							FD_ZERO(&clientSockSet);
+							FD_SET(p->sClient, &clientSockSet);
+
+							timeout.tv_sec = p->dwConnectTimeout / 1000000U;
+							timeout.tv_usec = p->dwConnectTimeout % 1000000U;
+
+							bConnect = (select((int) p->sClient + 1, NULL, &clientSockSet, NULL, &timeout) > 0);
+						}
+
+						if (!bConnect)
+						{
+							// connect() failed
+							closesocket(p->sClient);
+							p->sClient = SOCKET_ERROR;
+							continue;
+						}
+					}
+					if (bNonBlockedIO && p->sClient != SOCKET_ERROR)
+					{
+						// disable non-blocked IO
+						SetNonBlockedIO(p->sClient,0U);
 					}
 					break;
 				}
@@ -85,24 +123,17 @@ static BOOL TcpSendFrame(PTCPIP p, WORD wFrame)
 			#else
 				// IPv4 implementation
 				SOCKADDR_IN sServer;
+				struct hostent *host;
 
-				LPCSTR lpszIpAddr = p->lpszAddrOut;
+				sServer.sin_family = AF_INET;
+				sServer.sin_port = htons(p->wPortOut);
 
-				// not a valid ip address -> try to get ip address from name server
-				if (inet_addr(lpszIpAddr) == INADDR_NONE)
+				host = gethostbyname(p->lpszAddrOut);
+				if (host == NULL)
 				{
-					struct hostent *host = NULL;
-					struct in_addr sin_addr;
-
-					host = gethostbyname(p->lpszAddrOut);
-					if (host == NULL)
-					{
-						return TRUE;		// server not found
-					}
-
-					CopyMemory(&sin_addr, host->h_addr_list[0], host->h_length);
-					lpszIpAddr = inet_ntoa(sin_addr);
+					return TRUE;			// server not found
 				}
+				CopyMemory(&sServer.sin_addr, host->h_addr_list[0], host->h_length);
 
 				// create TCPIP socket
 				p->sClient = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -112,23 +143,46 @@ static BOOL TcpSendFrame(PTCPIP p, WORD wFrame)
 					p->sClient = SOCKET_ERROR;
 					return TRUE;
 				}
-
 				// disable the Nagle buffering
 				{
 					int flag = 1;
 					VERIFY(setsockopt(p->sClient,IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(flag)) == 0);
 				}
-
-				sServer.sin_family = AF_INET;
-				sServer.sin_port = htons(p->wPortOut);
-				sServer.sin_addr.s_addr = inet_addr(lpszIpAddr);
-
+				// enable non-blocked IO connect
+				if (bNonBlockedIO)
+				{
+					SetNonBlockedIO(p->sClient,1U);
+				}
 				// connect
 				if (connect(p->sClient,(LPSOCKADDR) &sServer, sizeof(sServer)) == SOCKET_ERROR)
 				{
-					// connect() failed
-					closesocket(p->sClient);
-					p->sClient = SOCKET_ERROR;
+					BOOL bConnect = FALSE;
+
+					if (bNonBlockedIO && WSAEWOULDBLOCK == WSAGetLastError())
+					{
+						TIMEVAL timeout;
+						FD_SET  clientSockSet;
+
+						FD_ZERO(&clientSockSet);
+						FD_SET(p->sClient, &clientSockSet);
+
+						timeout.tv_sec = p->dwConnectTimeout / 1000000U;
+						timeout.tv_usec = p->dwConnectTimeout % 1000000U;
+
+						bConnect = (select((int) p->sClient + 1, NULL, &clientSockSet, NULL, &timeout) > 0);
+					}
+
+					if (!bConnect)
+					{
+						// connect() failed
+						closesocket(p->sClient);
+						p->sClient = SOCKET_ERROR;
+					}
+				}
+				if (bNonBlockedIO && p->sClient != SOCKET_ERROR)
+				{
+					// disable non-blocked IO
+					SetNonBlockedIO(p->sClient,0U);
 				}
 			#endif
 
@@ -440,6 +494,8 @@ VOID TcpInit(PTCPIP p)
 
 	p->bRealDevices = FALSE;				// no real IL hardware connected over Pilbox
 	p->dwLoopTimeout = 500;					// standard timeout for virtual devices in ms
+
+	p->dwConnectTimeout = 0xFFFFFFFF;		// blocked IO standard connect
 
 	p->hWorkerThread = NULL;
 

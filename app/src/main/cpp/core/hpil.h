@@ -183,6 +183,7 @@ extern WORD   DeviceFrame(PHPILMEM pMem, WORD wFrame);
 extern BOOL   bEnableRFC;
 extern BOOL   bHpilRealDevices;
 extern DWORD  dwHpilLoopTimeout;
+extern DWORD  dwHpilConnectTimeout;
 extern VOID   ResetHpilData(PHPILDATA p);
 extern HANDLE AllocHpilMem(UINT nType,LPDWORD pdwSize,LPBYTE *ppbyMem,PSATCFG psCfg,LPCSTR pszAddrOut,WORD wPortOut,WORD wPortIn);
 extern BOOL   AttachHpilMem(PPORTACC *ppsPort,HANDLE hMemModule);

@@ -33,6 +33,8 @@ typedef struct _PORTCFG
     struct _PORTCFG *pNext;					// next module in same queue
 } PORTCFG, *PPORTCFG;
 
-BOOL bChanged[];
+extern BOOL bChanged[];
 
 VOID LoadCurrPortConfig(VOID);
+VOID SaveCurrPortConfig(VOID);
+VOID Cleanup(VOID);

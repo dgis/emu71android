@@ -323,10 +323,6 @@ extern LRESULT OnStackPaste(VOID);
 extern BOOL    GetOpenImageFile(HWND hWnd,LPTSTR szBuffer,DWORD dwBufferSize);
 extern LRESULT OnEditPortConfig(VOID);
 
-// External.c
-extern VOID External0(CHIPSET* w);
-extern VOID External1(CHIPSET* w);
-
 // SndEnum.c
 extern VOID SetSoundDeviceList(HWND hWnd,UINT uDeviceID);
 

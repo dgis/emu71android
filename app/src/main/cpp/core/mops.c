@@ -919,9 +919,9 @@ static VOID TAcc(enum CHIP eChip)
 		// detect a nibble carry at the timer increment
 		if (sState[eChip].bEnAcc == TRUE)	// 2nd access inside time frame
 		{
+			InitAdjustSpeed();				// init variables if necessary
 			EnterCriticalSection(&csSlowLock);
 			{
-				InitAdjustSpeed();			// init variables if necessary
 				nOpcSlow = 10;				// slow down next 10 opcodes
 			}
 			LeaveCriticalSection(&csSlowLock);

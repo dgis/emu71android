@@ -24,6 +24,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.VibrationAttributes;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.OpenableColumns;
@@ -56,7 +57,7 @@ public class Utils {
         toast.show();
     }
 
-    static int resId(Context context, String resourceName, String variableName) {
+	public static int resId(Context context, String resourceName, String variableName) {
         try {
             return context.getResources().getIdentifier(variableName, resourceName, context.getApplicationContext().getPackageName());
         } catch (Exception e) {
@@ -91,9 +92,9 @@ public class Utils {
 	public static void colorizeDrawableWithColor(Context context, Drawable icon, int colorAttribute) {
 		if(icon != null) {
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-				icon.setColorFilter(new BlendModeColorFilter(Utils.getThemedColor(context, colorAttribute), BlendMode.SRC_ATOP));
+				icon.setColorFilter(new BlendModeColorFilter(getThemedColor(context, colorAttribute), BlendMode.SRC_ATOP));
 			else
-				icon.setColorFilter(Utils.getThemedColor(context, colorAttribute), PorterDuff.Mode.SRC_ATOP);
+				icon.setColorFilter(getThemedColor(context, colorAttribute), PorterDuff.Mode.SRC_ATOP);
 		}
 	}
 
@@ -101,12 +102,26 @@ public class Utils {
 	public static void makeUriPersistable(Context context, Intent data, Uri uri) {
         int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-            context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			try {
+				context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			} catch (SecurityException e) {
+				Utils.showAlert(context,
+						context.getString(Utils.resId(context, "string", "message_persisting_security_error"))
+								+ e.getMessage(),
+						true);
+			}
     }
     public static void makeUriPersistableReadOnly(Context context, Intent data, Uri uri) {
         int takeFlags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-            context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			try {
+				context.getContentResolver().takePersistableUriPermission(uri, takeFlags);
+			} catch (SecurityException e) {
+				Utils.showAlert(context,
+						context.getString(Utils.resId(context, "string", "message_persisting_security_error"))
+						+ e.getMessage(),
+						true);
+			}
     }
 
     public static String getFileName(Context context, String url) {
@@ -205,12 +220,26 @@ public class Utils {
 
 	public static void vibrate(Vibrator vibrator, int durationInMilliSecond) {
 		if(vibrator != null && durationInMilliSecond > 0) {
+			long[] vibratePattern = { 0, durationInMilliSecond, 1000 };
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-				// https://developer.android.com/reference/android/os/Vibrator#vibrate(android.os.VibrationEffect,%20android.media.AudioAttributes)
-				vibrator.vibrate(VibrationEffect.createOneShot(durationInMilliSecond, VibrationEffect.DEFAULT_AMPLITUDE));
+				vibrator.vibrate(VibrationEffect.createWaveform(vibratePattern, -1));
 			else
-				//deprecated in API 26
+				// Deprecated in API 26
 				vibrator.vibrate(durationInMilliSecond);
 		}
+	}
+
+	private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+	public static String bytesToHex(byte[] bytes) {
+		char[] hexChars = new char[bytes.length * 4];
+		for (int j = 0; j < bytes.length; j++) {
+			int v = bytes[j] & 0xFF;
+			hexChars[j * 3] = HEX_ARRAY[v >>> 4];
+			hexChars[j * 3 + 1] = HEX_ARRAY[v & 0x0F];
+			hexChars[j * 3 + 2] = ' ';
+		}
+		for (int j = 0; j < bytes.length; j++)
+			hexChars[bytes.length * 3 + j] = Character.isISOControl(bytes[j]) ? '.' : (char) bytes[j];
+		return new String(hexChars);
 	}
 }

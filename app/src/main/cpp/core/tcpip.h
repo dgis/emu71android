@@ -21,7 +21,8 @@ typedef struct
 	BOOL   bLoopClosed;						// interface loop is closed
 
 	BOOL   bRealDevices;					// real devices connected with Pilbox
-	DWORD  dwLoopTimeout;					// standard timeout for virtual devices connected over tpc/ip
+	DWORD  dwLoopTimeout;					// standard loop timeout for virtual devices connected over tpc/ip
+	DWORD  dwConnectTimeout;				// non-blocked IO connect timeout in us,  0xFFFFFFFF is blocked IO connect
 
 	BOOL   bOriginClient;					// frame initiated by client
 

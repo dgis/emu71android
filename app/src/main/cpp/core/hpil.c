@@ -27,6 +27,7 @@
 BOOL  bEnableRFC = TRUE;					// send a RFC frame behind a CMD frame
 BOOL  bHpilRealDevices  = TRUE;				// real IL hardware maybe connected over Pilbox
 DWORD dwHpilLoopTimeout = 500;				// standard timeout for finishing the virtual IL
+DWORD dwHpilConnectTimeout = 10000;			// non-blocked IO conncect timeout in us,  0xFFFFFFFF is blocked IO connect
 
 static DWORD WINAPI IoThread(LPVOID pParam);
 
@@ -109,9 +110,10 @@ static VOID CreateHpilThread(PHPILMEM pMem)
 	InitializeCriticalSection(&pMem->csStatus);
 	InitializeCriticalSection(&pMem->csBuffer);
 
-	TcpInit(&pMem->sTcp);					// init tcp/ip stack
-	pMem->sTcp.bRealDevices = bHpilRealDevices;	  // fetch real IL hardware setting from registry
-	pMem->sTcp.dwLoopTimeout = dwHpilLoopTimeout; // fetch standard timeout setting from registry
+	TcpInit(&pMem->sTcp);								// init tcp/ip stack
+	pMem->sTcp.bRealDevices = bHpilRealDevices;			// fetch real IL hardware setting from registry
+	pMem->sTcp.dwLoopTimeout = dwHpilLoopTimeout;		// fetch standard timeout setting from registry
+	pMem->sTcp.dwConnectTimeout = dwHpilConnectTimeout;	// fetch tcp/ip connect timeout setting from registry
 
 	pMem->bEnableRFC = bEnableRFC;			// fetch RFC enable flag setting from registry
 

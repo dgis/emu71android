@@ -671,7 +671,7 @@ BOOL OpenDocument(LPCTSTR szFilename)
 		}
 	}
 
-	// read length of KML script name, no script name characters to skip
+	// read length of KML script name
 	ReadFile(hFile,&dwLength,sizeof(dwLength),&lBytesRead,NULL);
 
 	// KML script name too long for file buffer

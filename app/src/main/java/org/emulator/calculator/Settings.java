@@ -51,7 +51,7 @@ public class Settings extends PreferenceDataStore {
 	private final SharedPreferences androidSettings;
 
 	// Defined the setting keys which are only defined at the application level.
-	private List<String> applicationSettingKeys = Arrays.asList("settings_kml_default", "settings_kml_folder", "lastDocument", "MRU");
+	private final List<String> applicationSettingKeys = Arrays.asList("settings_kml_default", "settings_kml_folder", "lastDocument", "MRU");
 
 	// The settings only defined at the application level.
 	private final HashMap<String, Object> applicationSettings = new HashMap<>();
@@ -68,7 +68,7 @@ public class Settings extends PreferenceDataStore {
 		void onOneKeyChanged(String keyChanged);
 	}
 	private OnOneKeyChangedListener oneKeyChangedListener;
-	private static String magic = "MYHP";
+	private static final String magic = "MYHP";
 
 
 
@@ -157,7 +157,6 @@ public class Settings extends PreferenceDataStore {
 		return json.toString();
 	}
 
-	@SuppressWarnings("unchecked")
 	private static String toJSON(Map<String, Object> map) {
 		StringBuilder json = new StringBuilder();
 		json.append("{");
@@ -251,10 +250,10 @@ public class Settings extends PreferenceDataStore {
 					for (int i = 0; i < magic.length(); i++) {
 						fileOutputStream.write(magic.charAt(i));
 					}
-					fileOutputStream.flush();
 					fileOutputStream.close();
 				}
 			} catch (IOException e) {
+				if(debug) Log.d(TAG, "saveInStateFile() Error");
 				e.printStackTrace();
 			}
 		}
@@ -307,7 +306,7 @@ public class Settings extends PreferenceDataStore {
 				HashMap<String, Object> settings = fromJSON(json);
 				embeddedStateSettings.putAll(settings);
 			}
-		} catch (IOException e) {
+		} catch (IOException | SecurityException e) {
 			e.printStackTrace();
 		}
 	}
@@ -316,7 +315,7 @@ public class Settings extends PreferenceDataStore {
 		commonSettings.clear();
 		Map<String, ?> keyValuePairs = androidSettings.getAll();
 		for (String key : keyValuePairs.keySet()) {
-			if (applicationSettingKeys.indexOf(key) != -1)
+			if (applicationSettingKeys.contains(key))
 				applicationSettings.put(key, keyValuePairs.get(key));
 			else
 				commonSettings.put(key, keyValuePairs.get(key));
@@ -398,8 +397,8 @@ public class Settings extends PreferenceDataStore {
 	@Nullable
 	@Override
 	public String getString(String key, @Nullable String defValue) {
-		if(debug) Log.d(TAG, "getString(key: '" + key + "')");
 		Object result = getValue(key);
+		if(debug) Log.d(TAG, "getString(key: '" + key + "') -> " + result);
 		if(result instanceof String)
 			return (String) result;
 		return defValue;
@@ -420,8 +419,8 @@ public class Settings extends PreferenceDataStore {
 
 	@Override
 	public int getInt(String key, int defValue) {
-		if(debug) Log.d(TAG, "getInt(key: '" + key + "')");
 		Object result = getValue(key);
+		if(debug) Log.d(TAG, "getInt(key: '" + key + "') -> " + result);
 		if(result != null)
 			try {
 				return ((Number) result).intValue();
@@ -431,8 +430,8 @@ public class Settings extends PreferenceDataStore {
 
 	@Override
 	public long getLong(String key, long defValue) {
-		if(debug) Log.d(TAG, "getLong(key: '" + key + "')");
 		Object result = getValue(key);
+		if(debug) Log.d(TAG, "getLong(key: '" + key + "') -> " + result);
 		if(result != null)
 			try {
 				return ((Number) result).longValue();
@@ -442,8 +441,8 @@ public class Settings extends PreferenceDataStore {
 
 	@Override
 	public float getFloat(String key, float defValue) {
-		if(debug) Log.d(TAG, "getFloat(key: '" + key + "')");
 		Object result = getValue(key);
+		if(debug) Log.d(TAG, "getFloat(key: '" + key + "') -> " + result);
 		if(result != null)
 			try {
 				return ((Number) result).floatValue();
@@ -453,8 +452,8 @@ public class Settings extends PreferenceDataStore {
 
 	@Override
 	public boolean getBoolean(String key, boolean defValue) {
-		if(debug) Log.d(TAG, "getBoolean(key: '" + key + "')");
 		Object result = getValue(key);
+		if(debug) Log.d(TAG, "getBoolean(key: '" + key + "') -> " + result);
 		if(result != null)
 			try {
 				return (Boolean) result;

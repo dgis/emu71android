@@ -2409,19 +2409,3 @@ VOID o_goyes5(LPBYTE I)
 		w.pc=rstkpop();
 	return;
 }
-
-//////// EXTENSIONS ////////
-VOID o81B0(LPBYTE I)
-{
-	External0(&w);							// =RCKBp
-	PCHANGED;								// update field select table
-	return;
-}
-
-VOID o81B1(LPBYTE I)
-{
-	External1(&w);							// =BP+C
-	PCHANGED;								// update field select table
-	return;
-}
-////////////////////////////

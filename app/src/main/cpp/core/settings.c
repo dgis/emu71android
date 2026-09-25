@@ -197,9 +197,10 @@ VOID ReadSettings(VOID)
 	nMacroTimeout   = ReadInt(_T("Macro"),_T("ReplayTimeout"),nMacroTimeout);
 	dwMacroMinDelay = ReadInt(_T("Macro"),_T("KeyMinDelay"),dwMacroMinDelay);
 	// HPIL
-	bEnableRFC          = ReadInt(_T("HPIL"),_T("EnableRFC"),bEnableRFC);
-	bHpilRealDevices    = ReadInt(_T("HPIL"),_T("RealDevices"),bHpilRealDevices);
-	dwHpilLoopTimeout   = ReadInt(_T("HPIL"),_T("LoopTimeout"),dwHpilLoopTimeout);
+	bEnableRFC           = ReadInt(_T("HPIL"),_T("EnableRFC"),bEnableRFC);
+	bHpilRealDevices     = ReadInt(_T("HPIL"),_T("RealDevices"),bHpilRealDevices);
+	dwHpilLoopTimeout    = ReadInt(_T("HPIL"),_T("LoopTimeout"),dwHpilLoopTimeout);
+	dwHpilConnectTimeout = ReadInt(_T("HPIL"),_T("ConnectTimeout"),dwHpilConnectTimeout);
 	return;
 }
 
@@ -242,6 +243,7 @@ VOID WriteSettings(VOID)
 	WriteInt(_T("HPIL"),_T("EnableRFC"),bEnableRFC);
 	WriteInt(_T("HPIL"),_T("RealDevices"),bHpilRealDevices);
 	WriteInt(_T("HPIL"),_T("LoopTimeout"),dwHpilLoopTimeout);
+	WriteInt(_T("HPIL"),_T("ConnectTimeout"),dwHpilConnectTimeout);
 	return;
 }
 

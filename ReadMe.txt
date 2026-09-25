@@ -31,7 +31,7 @@ NOTES
 
 - For technical reason, this application need the Android 5.0 (API 21).
 - The Help menu displays Emu71's original help HTML page and may not accurately reflect the behavior of this Android version.
-- When using a custom KML script by selecting a folder, you must take care of the case sensitivity of its dependency files.
+- When using a custom KML script by selecting a folder (Not the folder Download for Android 11), you must take care of the case sensitivity of its dependency files.
 - This Emulator does not include the ROM files or the KML files.
 - The port configuration is very similar to Emu71 for Windows
 
@@ -45,9 +45,9 @@ NOT WORKING YET
 
 CHANGES
 
-Version 1.1 (2020-11-XX)
+Version 1.1 (2022-03-XX)
 
-- Update from the original source code Emu71 for Windows version 1.12 from Christoph Gießelink.
+- Update from the original source code Emu71 for Windows version 1.15 from Christoph Gießelink.
 - Intercept the ESC keyboard key to allow the use of the BACK soft key.
 - Add LCD pixel borders.
 - Add support for the dark theme.
@@ -67,6 +67,20 @@ Version 1.1 (2020-11-XX)
 - Fix a printer issue from Christoph Gießelink's HP82240B Printer Simulator version 1.12.
 - Fix the KML button Type 3 with a Background offset which was not display at the right location (Fix #15). But Type 3 does not work very well with Emu42.
 - Fix a timer issue.
+- Fix an issue which prevents to save all the settings (Save in onPause instead of onStop).
+- The KML folder is now well saved when changing the KML script for a custom one via the menu "Change KML Script...".
+- Fix an issue when the permission to read the KML folder has been lost.
+- Allows pressing a calculator button with the right button of the mouse but prevents its release to allow the On+A+F key combination (with Android version >= 5.0).
+- Open an external web browser when you click an external links in the Help.
+- Show KML log on request.
+- Fix the upside down background of the LCD screen on high contrast (actually, fix a general top-down issue in the bitmap).
+- Add the KML scripts and the calculator images in the application.
+- Remove unneeded code.
+- Display the graphic tab of the printer without antialiasing.
+- Fix a crash about the Most Recently Used state files.
+- Fix an issue with "Copy Screen".
+- Allow to load RLE4, RLE8 and monochrome BMP images.
+- Optimize the number of draw calls when displaying the LCD pixel borders.
 
 
 Version 1.0 (2019-12-12)
