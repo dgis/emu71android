@@ -36,6 +36,7 @@
     <string name="nav_save_object">Save Object...</string>
     <string name="nav_copy_screen">Copy Screen</string>
     <string name="nav_copy_fullscreen">Copy Fullscreen</string>
+	<string name="nav_copy_stack_visible">Copy Visible Stack</string>
     <string name="nav_copy_stack">Copy Stack</string>
     <string name="nav_recents">Recent</string>
     <string name="nav_edit">Edit</string>
@@ -48,6 +49,7 @@
     <string name="nav_change_kml_script">Change KML Script...</string>
     <string name="nav_show_kml_script_compilation_result">Show KML Script Compilation Result</string>
     <string name="nav_show_printer">Show the Printer Simulator...</string>
+    <string name="nav_virtual_keyboard">Virtual Keyboard</string>
     <string name="nav_tool">Tool</string>
 	<string name="nav_create_ram_card">Create RAM Card (HP48)...</string>
 	<string name="nav_manage_flash_rom">Manage Flash ROM (HP49)...</string>
